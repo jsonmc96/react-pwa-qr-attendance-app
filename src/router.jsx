@@ -16,7 +16,15 @@ export const AppRouter = () => {
     const { user, loading } = useAuth();
 
     if (loading) {
-        return null; // O un loading screen
+        // return null; // O un loading screen
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-gray-50">
+                <div className="text-center">
+                    <div className="animate-spin rounded-full h-10 w-10 border-4 border-gray-300 border-t-gray-900 mx-auto" />
+                    <p className="mt-3 text-gray-600">Cargando...</p>
+                </div>
+            </div>
+        );
     }
 
     return (
