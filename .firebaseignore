@@ -1,0 +1,15 @@
+# Firebase
+.firebase/
+.firebaserc
+
+# Build
+dist/
+dist-ssr/
+
+# Logs
+*.log
+
+# Environment
+.env
+.env.local
+.env.production

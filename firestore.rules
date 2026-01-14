@@ -1,0 +1,53 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+    
+    function isAdmin() {
+      return isAuthenticated() && getUserData().role == 'admin';
+    }
+    
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    // Users collection
+    match /users/{userId} {
+      allow read: if isAuthenticated() && (isOwner(userId) || isAdmin());
+      allow write: if false; // Solo se crean via Admin SDK o Cloud Functions
+    }
+    
+    // Daily QR collection
+    match /dailyQR/{date} {
+      allow read: if isAuthenticated();
+      allow create, update: if isAdmin();
+      allow delete: if false; // No permitir eliminación
+    }
+    
+    // Attendance collection
+    match /attendance/{attendanceId} {
+      allow read: if isAuthenticated() && 
+                     (resource.data.userId == request.auth.uid || isAdmin());
+      
+      // Solo permitir crear si:
+      // 1. Usuario está autenticado
+      // 2. El userId coincide con el usuario autenticado
+      // 3. La fecha es la fecha actual
+      // 4. No existe ya un registro para ese usuario en esa fecha
+      allow create: if isAuthenticated() && 
+                       request.resource.data.userId == request.auth.uid &&
+                       request.resource.data.date == request.time.toDate().toString().split('T')[0] &&
+                       !exists(/databases/$(database)/documents/attendance/$(request.auth.uid + '_' + request.resource.data.date));
+      
+      allow update, delete: if false; // No permitir modificación ni eliminación
+    }
+  }
+}

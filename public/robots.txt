@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://tu-app.web.app/sitemap.xml
