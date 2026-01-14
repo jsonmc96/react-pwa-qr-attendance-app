@@ -341,7 +341,7 @@ ISC
 
 ## 👨‍💻 Autor
 
-Tu nombre/organización
+@JsonMC
 
 ---
 
