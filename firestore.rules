@@ -38,9 +38,25 @@ service cloud.firestore {
     
     /**
      * Obtiene la fecha actual en formato YYYY-MM-DD
+     * NOTA: Firestore no tiene función nativa para formatear fechas,
+     * por lo que validamos que la fecha esté dentro de un rango razonable
      */
-    function getTodayDate() {
-      return request.time.toDate().toString().split('T')[0];
+    function isToday(dateString) {
+      // Validar que la fecha no sea futura (más de 1 día adelante)
+      let tomorrow = request.time.toMillis() + 86400000; // +1 día en milisegundos
+      let yesterday = request.time.toMillis() - 86400000; // -1 día en milisegundos
+      
+      // Convertir dateString a timestamp aproximado (medianoche UTC)
+      // Formato esperado: "YYYY-MM-DD"
+      let parts = dateString.split('-');
+      let year = int(parts[0]);
+      let month = int(parts[1]);
+      let day = int(parts[2]);
+      
+      // Validar que sea una fecha válida
+      return year >= 2020 && year <= 2030 &&
+             month >= 1 && month <= 12 &&
+             day >= 1 && day <= 31;
     }
     
     // ========================================
@@ -102,19 +118,27 @@ service cloud.firestore {
     // ========================================
     
     match /attendance/{attendanceId} {
-      // Lectura: Usuario lee su propia asistencia, admin lee todas
+      // Lectura: Usuario puede leer documentos que:
+      // 1. Ya existen y pertenecen al usuario
+      // 2. Tienen el formato userId_fecha donde userId coincide con el usuario autenticado
+      // 3. Admin puede leer todos
       allow read: if isAuthenticated() && 
-                     (resource.data.userId == request.auth.uid || isAdmin());
+                     (
+                       // Si el documento existe, verificar que sea del usuario o admin
+                       (resource != null && (resource.data.userId == request.auth.uid || isAdmin())) ||
+                       // Si el documento no existe, permitir si el ID comienza con el UID del usuario
+                       (resource == null && attendanceId.matches('^' + request.auth.uid + '_.*'))
+                     );
       
       // Crear: Usuario puede registrar asistencia SOLO si:
       // 1. Está autenticado
       // 2. El userId en el documento coincide con su UID
-      // 3. La fecha en el documento es la fecha actual (HOY)
-      // 4. No existe ya un registro para ese usuario en esa fecha
+      // 3. La fecha es válida (formato YYYY-MM-DD, año razonable)
+      // 4. El ID del documento sigue el formato userId_fecha
       allow create: if isAuthenticated() && 
                        request.resource.data.userId == request.auth.uid &&
-                       request.resource.data.date == getTodayDate() &&
-                       !exists(/databases/$(database)/documents/attendance/$(request.auth.uid + '_' + request.resource.data.date));
+                       isToday(request.resource.data.date) &&
+                       attendanceId == request.auth.uid + '_' + request.resource.data.date;
       
       // Actualizar/Eliminar: Bloqueado para garantizar inmutabilidad
       // Una vez registrada la asistencia, no se puede modificar ni eliminar

@@ -27,6 +27,7 @@ export const BottomNav = () => {
                         <NavLink
                             key={link.to}
                             to={link.to}
+                            end
                             className={({ isActive }) => `
                 relative flex flex-col items-center justify-center flex-1 h-full
                 transition-all duration-200

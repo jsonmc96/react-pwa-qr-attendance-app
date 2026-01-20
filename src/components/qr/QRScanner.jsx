@@ -15,6 +15,7 @@ export const QRScanner = ({ onSuccess }) => {
     const [result, setResult] = useState(null);
     const [checking, setChecking] = useState(true);
     const [alreadyRegistered, setAlreadyRegistered] = useState(false);
+    const [isProcessing, setIsProcessing] = useState(false); // ✅ NUEVO: Evitar múltiples escaneos
 
     useEffect(() => {
         checkEligibility();
@@ -38,12 +39,21 @@ export const QRScanner = ({ onSuccess }) => {
 
     const handleStartScan = async () => {
         setResult(null);
+        setIsProcessing(false); // ✅ Resetear flag al iniciar
 
         // Primero, mostrar el contenedor del scanner
         // (esto hace que el elemento #qr-reader se renderice)
         const success = await startScanning(
             'qr-reader',
             async (decodedText) => {
+                // ✅ CRÍTICO: Evitar múltiples llamadas
+                if (isProcessing) {
+                    console.log('Ya procesando QR, ignorando escaneo duplicado');
+                    return;
+                }
+
+                setIsProcessing(true); // ✅ Marcar como procesando
+
                 // QR escaneado exitosamente
                 await stopScanning();
 
@@ -85,6 +95,9 @@ export const QRScanner = ({ onSuccess }) => {
                     if ('vibrate' in navigator) {
                         navigator.vibrate([100, 50, 100, 50, 100]);
                     }
+
+                    // ✅ Resetear flag para permitir reintentar
+                    setIsProcessing(false);
                 }
             },
             (error) => {
@@ -92,6 +105,7 @@ export const QRScanner = ({ onSuccess }) => {
                     success: false,
                     message: error
                 });
+                setIsProcessing(false); // ✅ Resetear flag en error
             }
         );
 
@@ -100,6 +114,7 @@ export const QRScanner = ({ onSuccess }) => {
                 success: false,
                 message: scanError || 'No se pudo iniciar el escáner. Verifica los permisos de cámara.'
             });
+            setIsProcessing(false); // ✅ Resetear flag si no inicia
         }
     };
 
