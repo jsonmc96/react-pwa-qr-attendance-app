@@ -42,6 +42,18 @@ export const useQRScanner = () => {
                 }
             }
 
+            // Marcar como scanning primero para que el elemento se renderice
+            setIsScanning(true);
+
+            // Esperar a que el DOM se actualice
+            await new Promise(resolve => setTimeout(resolve, 100));
+
+            // Verificar que el elemento existe
+            const element = document.getElementById(elementId);
+            if (!element) {
+                throw new Error('Elemento del scanner no encontrado');
+            }
+
             const html5QrCode = new Html5Qrcode(elementId);
             setScanner(html5QrCode);
 
@@ -64,12 +76,12 @@ export const useQRScanner = () => {
                 }
             );
 
-            setIsScanning(true);
             return true;
         } catch (err) {
             console.error('Error starting scanner:', err);
             const errorMsg = err.message || 'Error al iniciar el escáner';
             setError(errorMsg);
+            setIsScanning(false);
             if (onError) onError(errorMsg);
             return false;
         }

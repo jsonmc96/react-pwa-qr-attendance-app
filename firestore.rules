@@ -2,52 +2,138 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
-    // Helper functions
+    // ========================================
+    // HELPER FUNCTIONS
+    // ========================================
+    
+    /**
+     * Verifica si el usuario está autenticado
+     */
     function isAuthenticated() {
       return request.auth != null;
     }
     
+    /**
+     * Obtiene los datos del usuario desde Firestore
+     * NOTA: Esta función hace una lectura extra, úsala con cuidado
+     */
     function getUserData() {
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
     }
     
+    /**
+     * Verifica si el usuario autenticado es admin
+     * Requiere que el documento del usuario exista en /users/{uid}
+     */
     function isAdmin() {
       return isAuthenticated() && getUserData().role == 'admin';
     }
     
+    /**
+     * Verifica si el usuario autenticado es el dueño del recurso
+     */
     function isOwner(userId) {
       return isAuthenticated() && request.auth.uid == userId;
     }
     
-    // Users collection
+    /**
+     * Obtiene la fecha actual en formato YYYY-MM-DD
+     */
+    function getTodayDate() {
+      return request.time.toDate().toString().split('T')[0];
+    }
+    
+    // ========================================
+    // COLLECTION: users
+    // ========================================
+    // Estructura:
+    // {
+    //   uid: string (igual al document ID)
+    //   email: string
+    //   displayName: string
+    //   role: "admin" | "user"
+    // }
+    // ========================================
+    
     match /users/{userId} {
+      // Lectura: Usuario puede leer su propio perfil, admin puede leer todos
       allow read: if isAuthenticated() && (isOwner(userId) || isAdmin());
-      allow write: if false; // Solo se crean via Admin SDK o Cloud Functions
+      
+      // Escritura: Bloqueada desde el cliente
+      // Los usuarios se crean manualmente en Firebase Console o via Admin SDK
+      allow write: if false;
     }
     
-    // Daily QR collection
+    // ========================================
+    // COLLECTION: dailyQR
+    // ========================================
+    // Estructura:
+    // {
+    //   qrHash: string (hash del QR del día)
+    //   date: string (YYYY-MM-DD)
+    //   createdAt: timestamp
+    //   createdBy: string (UID del admin que lo creó)
+    // }
+    // Document ID: YYYY-MM-DD (ejemplo: 2026-01-19)
+    // ========================================
+    
     match /dailyQR/{date} {
+      // Lectura: Cualquier usuario autenticado puede leer el QR del día
       allow read: if isAuthenticated();
+      
+      // Crear/Actualizar: Solo admin puede generar/regenerar QR
       allow create, update: if isAdmin();
-      allow delete: if false; // No permitir eliminación
+      
+      // Eliminar: Bloqueado para mantener historial
+      allow delete: if false;
     }
     
-    // Attendance collection
+    // ========================================
+    // COLLECTION: attendance
+    // ========================================
+    // Estructura:
+    // {
+    //   userId: string (UID del usuario)
+    //   date: string (YYYY-MM-DD)
+    //   timestamp: timestamp (momento exacto del registro)
+    //   qrHash: string (hash del QR escaneado)
+    // }
+    // Document ID: {userId}_{date} (ejemplo: abc123_2026-01-19)
+    // ========================================
+    
     match /attendance/{attendanceId} {
+      // Lectura: Usuario lee su propia asistencia, admin lee todas
       allow read: if isAuthenticated() && 
                      (resource.data.userId == request.auth.uid || isAdmin());
       
-      // Solo permitir crear si:
-      // 1. Usuario está autenticado
-      // 2. El userId coincide con el usuario autenticado
-      // 3. La fecha es la fecha actual
+      // Crear: Usuario puede registrar asistencia SOLO si:
+      // 1. Está autenticado
+      // 2. El userId en el documento coincide con su UID
+      // 3. La fecha en el documento es la fecha actual (HOY)
       // 4. No existe ya un registro para ese usuario en esa fecha
       allow create: if isAuthenticated() && 
                        request.resource.data.userId == request.auth.uid &&
-                       request.resource.data.date == request.time.toDate().toString().split('T')[0] &&
+                       request.resource.data.date == getTodayDate() &&
                        !exists(/databases/$(database)/documents/attendance/$(request.auth.uid + '_' + request.resource.data.date));
       
-      allow update, delete: if false; // No permitir modificación ni eliminación
+      // Actualizar/Eliminar: Bloqueado para garantizar inmutabilidad
+      // Una vez registrada la asistencia, no se puede modificar ni eliminar
+      allow update, delete: if false;
     }
+    
+    // ========================================
+    // REGLAS ADICIONALES (Opcional)
+    // ========================================
+    
+    // Si en el futuro necesitas una colección de reportes para admin:
+    // match /reports/{reportId} {
+    //   allow read, write: if isAdmin();
+    // }
+    
+    // Si necesitas una colección de configuración global:
+    // match /config/{configId} {
+    //   allow read: if isAuthenticated();
+    //   allow write: if isAdmin();
+    // }
   }
 }

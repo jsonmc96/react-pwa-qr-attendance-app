@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect } from 'react';
-import { onAuthChange, logout as firebaseLogout } from '../services/firebase/auth';
+import { backend } from '../services/backend';
 import { ROLES } from '../utils/constants';
 
 const AuthContext = createContext(null);
@@ -18,7 +18,7 @@ export const AuthProvider = ({ children }) => {
 
     useEffect(() => {
         // Suscribirse a cambios de autenticación
-        const unsubscribe = onAuthChange((userData) => {
+        const unsubscribe = backend.auth.onAuthChange((userData) => {
             setUser(userData);
             setLoading(false);
         });
@@ -29,7 +29,7 @@ export const AuthProvider = ({ children }) => {
 
     const logout = async () => {
         try {
-            await firebaseLogout();
+            await backend.auth.logout();
             setUser(null);
         } catch (error) {
             console.error('Error logging out:', error);

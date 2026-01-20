@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { loginWithEmail } from '../services/firebase/auth';
+import { backend } from '../services/backend';
 import { validateLoginForm } from '../utils/validators';
 
 export const useAuth = () => {
@@ -20,7 +20,7 @@ export const useAuth = () => {
             }
 
             // Intentar login
-            const user = await loginWithEmail(email, password);
+            const user = await backend.auth.login(email, password);
             return user;
         } catch (err) {
             setError(err.message);

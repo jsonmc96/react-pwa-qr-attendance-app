@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { getMonthlyAttendance } from '../services/attendance/attendanceService';
+import { backend } from '../services/backend';
 
 /**
  * Hook para cargar asistencia de un mes desde Firestore
@@ -22,7 +22,7 @@ export const useMonthlyAttendance = (userId) => {
 
         try {
             // Esta función ya hace 1 sola query con rango de fechas
-            const dates = await getMonthlyAttendance(userId, monthDate);
+            const dates = await backend.attendance.getMonthly(userId, monthDate);
             return dates;
         } catch (error) {
             console.error('Error loading monthly attendance:', error);

@@ -11,7 +11,7 @@ export const QRScanner = ({ onSuccess }) => {
     const { user } = useAuth();
     const navigate = useNavigate();
     const { startScanning, stopScanning, isScanning, error: scanError } = useQRScanner();
-    const { registerAttendance, loading, canRegisterToday } = useAttendance(user?.uid);
+    const { registerAttendance, loading, checkCanRegister } = useAttendance(user?.uid);
     const [result, setResult] = useState(null);
     const [checking, setChecking] = useState(true);
     const [alreadyRegistered, setAlreadyRegistered] = useState(false);
@@ -27,8 +27,8 @@ export const QRScanner = ({ onSuccess }) => {
     const checkEligibility = async () => {
         setChecking(true);
         try {
-            const canRegister = await canRegisterToday();
-            setAlreadyRegistered(!canRegister);
+            const result = await checkCanRegister();
+            setAlreadyRegistered(!result.canRegister);
         } catch (err) {
             console.error('Error checking eligibility:', err);
         } finally {
@@ -39,6 +39,8 @@ export const QRScanner = ({ onSuccess }) => {
     const handleStartScan = async () => {
         setResult(null);
 
+        // Primero, mostrar el contenedor del scanner
+        // (esto hace que el elemento #qr-reader se renderice)
         const success = await startScanning(
             'qr-reader',
             async (decodedText) => {

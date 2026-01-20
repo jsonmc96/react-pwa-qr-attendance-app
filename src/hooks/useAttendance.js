@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { processAttendance, getMonthlyAttendance, canRegisterToday } from '../services/attendance/attendanceService';
+import { backend } from '../services/backend';
 
 export const useAttendance = (userId) => {
     const [loading, setLoading] = useState(false);
@@ -10,7 +10,7 @@ export const useAttendance = (userId) => {
         setError(null);
 
         try {
-            const result = await processAttendance(userId, qrHash);
+            const result = await backend.attendance.scanQr(userId, qrHash);
 
             if (!result.success) {
                 setError(result.error);
@@ -32,7 +32,7 @@ export const useAttendance = (userId) => {
         setError(null);
 
         try {
-            const attendanceDates = await getMonthlyAttendance(userId, monthDate);
+            const attendanceDates = await backend.attendance.getMonthly(userId, monthDate);
             return attendanceDates;
         } catch (err) {
             const errorMsg = err.message || 'Error al obtener asistencia';
@@ -45,7 +45,7 @@ export const useAttendance = (userId) => {
 
     const checkCanRegister = useCallback(async () => {
         try {
-            return await canRegisterToday(userId);
+            return await backend.attendance.canRegisterToday(userId);
         } catch (err) {
             console.error('Error checking registration:', err);
             return { canRegister: false, message: 'Error al verificar registro' };

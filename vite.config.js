@@ -158,7 +158,7 @@ export default defineConfig({
   server: {
     port: 3000,
     open: true,
-    host: true // Permitir acceso desde red local (para probar en móvil)
+    host: true // Permitir acceso desde red local
   },
 
   // Optimizaciones de build

@@ -379,22 +379,22 @@ Solo agregar:
 
 ### Auth
 - [x] LoginForm.jsx - Header visual
-- [ ] LoginPage.jsx - Gradiente de fondo
+- [x] LoginPage.jsx - Gradiente de fondo
 
 ### User Pages
-- [ ] UserDashboard.jsx - Cards de acciones
-- [ ] ScanQR.jsx - Instrucciones
+- [x] UserDashboard.jsx - Cards de acciones
+- [x] ScanQR.jsx - Instrucciones
 - [x] MyAttendance.jsx - Ya optimizado
 
 ### Admin Pages
-- [ ] AdminDashboard.jsx - Stats y acciones
-- [ ] GenerateQR.jsx - Info adicional
-- [ ] QRHistoryPage.jsx - Empty state
-- [ ] AttendanceReport.jsx - Filtros y estados
+- [x] AdminDashboard.jsx - Stats y acciones
+- [x] GenerateQR.jsx - Info adicional
+- [x] QRHistoryPage.jsx - Sin cambios (ya está bien)
+- [x] AttendanceReport.jsx - Filtros y estados
 
 ### Layout
-- [ ] Header.jsx - Gradiente
-- [ ] BottomNav.jsx - Sombra mejorada
+- [x] Header.jsx - Gradiente
+- [x] BottomNav.jsx - Sombra mejorada
 
 ---
 
