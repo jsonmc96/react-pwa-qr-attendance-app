@@ -11,7 +11,9 @@ export const ROUTES = {
     ADMIN_REPORTS: '/admin/reports',
     USER_DASHBOARD: '/user',
     USER_SCAN_QR: '/user/scan-qr',
-    USER_ATTENDANCE: '/user/attendance'
+    USER_SCAN_QR: '/user/scan-qr',
+    USER_ATTENDANCE: '/user/attendance',
+    RANKING: '/ranking'
 };
 
 export const STORAGE_KEYS = {

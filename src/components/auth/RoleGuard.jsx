@@ -9,7 +9,10 @@ export const RoleGuard = ({ children, allowedRole }) => {
         return <Navigate to={ROUTES.LOGIN} replace />;
     }
 
-    if (user.role !== allowedRole) {
+    // Soportar tanto un rol único como un array de roles
+    const allowedRoles = Array.isArray(allowedRole) ? allowedRole : [allowedRole];
+
+    if (!allowedRoles.includes(user.role)) {
         // Redirigir al dashboard correspondiente
         const redirectTo = user.role === ROLES.ADMIN
             ? ROUTES.ADMIN_DASHBOARD

@@ -1,4 +1,4 @@
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../../../firebase/config';
 import { FIRESTORE_COLLECTIONS } from '../../../../utils/constants';
 
@@ -25,6 +25,26 @@ export const getProfile = async (uid) => {
         };
     } catch (error) {
         console.error('Error getting user profile:', error);
+        throw error;
+    }
+};
+
+/**
+ * Obtiene todos los usuarios (para ranking/admin)
+ * @returns {Promise<Array>} Array de usuarios
+ */
+export const getAllUsers = async () => {
+    try {
+        const usersRef = collection(db, FIRESTORE_COLLECTIONS.USERS);
+        const q = query(usersRef, where('role', '==', 'user')); // Solo usuarios normales
+        const snapshot = await getDocs(q);
+
+        return snapshot.docs.map(doc => ({
+            uid: doc.id,
+            ...doc.data()
+        }));
+    } catch (error) {
+        console.error('Error getting all users:', error);
         throw error;
     }
 };

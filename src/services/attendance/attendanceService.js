@@ -1,7 +1,10 @@
 import { registerAttendance, hasAttendanceToday, getUserAttendance } from '../firebase/firestore';
 import { validateScannedQR } from '../qr/qrValidator';
 import { getTodayISO } from '../../utils/dateHelpers';
-import { MESSAGES } from '../../utils/constants';
+import { MESSAGES, FIRESTORE_COLLECTIONS } from '../../utils/constants';
+import { getAllUsers } from '../backend/providers/firebase/users';
+import { collection, query, where, getCountFromServer } from 'firebase/firestore';
+import { db } from '../firebase/config';
 
 /**
  * Procesa el registro de asistencia
@@ -100,5 +103,38 @@ export const canRegisterToday = async (userId) => {
             canRegister: false,
             message: MESSAGES.ERROR.GENERIC
         };
+    }
+};
+
+/**
+ * Obtiene el ranking de asistencia
+ * Nota: En una app real masiva, esto se haría con Cloud Functions incrementando un contador.
+ * Aquí calculamos al vuelo o usamos un endpoint específico.
+ */
+export const getRanking = async () => {
+    try {
+        // 1. Obtener todos los usuarios
+        const users = await getAllUsers();
+
+        // 2. Para cada usuario, contar sus asistencias
+        // Usamos getCountFromServer que es mucho más barato que leer documentos
+        const rankingPromises = users.map(async (user) => {
+            const coll = collection(db, FIRESTORE_COLLECTIONS.ATTENDANCE);
+            const q = query(coll, where('userId', '==', user.uid));
+            const snapshot = await getCountFromServer(q);
+
+            return {
+                ...user,
+                attendanceCount: snapshot.data().count
+            };
+        });
+
+        const rankingData = await Promise.all(rankingPromises);
+
+        // 3. Ordenar descendente
+        return rankingData.sort((a, b) => b.attendanceCount - a.attendanceCount);
+    } catch (error) {
+        console.error('Error calculating ranking:', error);
+        throw error;
     }
 };

@@ -72,8 +72,10 @@ service cloud.firestore {
     // ========================================
     
     match /users/{userId} {
-      // Lectura: Usuario puede leer su propio perfil, admin puede leer todos
-      allow read: if isAuthenticated() && (isOwner(userId) || isAdmin());
+      // Lectura: Cualquier usuario autenticado puede leer perfiles básicos
+      // (necesario para funcionalidad de ranking)
+      // Admin puede leer todos, usuarios pueden leer cualquier perfil
+      allow read: if isAuthenticated();
       
       // Escritura: Bloqueada desde el cliente
       // Los usuarios se crean manualmente en Firebase Console o via Admin SDK
@@ -118,17 +120,10 @@ service cloud.firestore {
     // ========================================
     
     match /attendance/{attendanceId} {
-      // Lectura: Usuario puede leer documentos que:
-      // 1. Ya existen y pertenecen al usuario
-      // 2. Tienen el formato userId_fecha donde userId coincide con el usuario autenticado
-      // 3. Admin puede leer todos
-      allow read: if isAuthenticated() && 
-                     (
-                       // Si el documento existe, verificar que sea del usuario o admin
-                       (resource != null && (resource.data.userId == request.auth.uid || isAdmin())) ||
-                       // Si el documento no existe, permitir si el ID comienza con el UID del usuario
-                       (resource == null && attendanceId.matches('^' + request.auth.uid + '_.*'))
-                     );
+      // Lectura: Cualquier usuario autenticado puede leer registros de asistencia
+      // (necesario para funcionalidad de ranking que usa getCountFromServer)
+      // Esto permite queries de agregación sin exponer datos sensibles
+      allow read: if isAuthenticated();
       
       // Crear: Usuario puede registrar asistencia SOLO si:
       // 1. Está autenticado

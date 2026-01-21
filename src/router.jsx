@@ -9,6 +9,7 @@ import { QRHistoryPage } from './pages/admin/QRHistoryPage';
 import { UserDashboard } from './pages/user/UserDashboard';
 import { ScanQR } from './pages/user/ScanQR';
 import { MyAttendance } from './pages/user/MyAttendance';
+import { RankingPage } from './pages/shared/RankingPage';
 import { ROUTES, ROLES } from './utils/constants';
 import { useAuth } from './context/AuthContext';
 import { MainLayout } from './components/layout/MainLayout';
@@ -82,6 +83,16 @@ export const AppRouter = () => {
                             </RoleGuard>
                         }
                     />
+                    <Route
+                        path={ROUTES.RANKING}
+                        element={
+                            <div className="pb-safe">
+                                <RoleGuard allowedRole={[ROLES.ADMIN, ROLES.USER]}>
+                                    <RankingPage />
+                                </RoleGuard>
+                            </div>
+                        }
+                    />
 
                     {/* Rutas de Usuario */}
                     <Route
@@ -95,7 +106,7 @@ export const AppRouter = () => {
                     <Route
                         path={ROUTES.USER_SCAN_QR}
                         element={
-                            <RoleGuard allowedRole={ROLES.USER}>
+                            <RoleGuard allowedRole={[ROLES.USER, ROLES.ADMIN]}>
                                 <ScanQR />
                             </RoleGuard>
                         }
@@ -103,7 +114,7 @@ export const AppRouter = () => {
                     <Route
                         path={ROUTES.USER_ATTENDANCE}
                         element={
-                            <RoleGuard allowedRole={ROLES.USER}>
+                            <RoleGuard allowedRole={[ROLES.USER, ROLES.ADMIN]}>
                                 <MyAttendance />
                             </RoleGuard>
                         }

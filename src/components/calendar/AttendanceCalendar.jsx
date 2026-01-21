@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
     format,
     startOfMonth,
@@ -7,21 +7,35 @@ import {
     endOfWeek,
     addDays,
     addMonths,
-    subMonths,
+    subMonths as subMonthsFn,
     isSameMonth,
     isSameDay,
-    isToday
+    isToday,
+    subMonths,
+    eachMonthOfInterval,
+    startOfYear,
+    endOfYear
 } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { useNavigate } from 'react-router-dom';
+import { ROUTES } from '../../utils/constants';
+import { DayDetailModal } from './DayDetailModal';
 
 /**
  * Componente de calendario mensual para mostrar asistencia
- * Optimizado para PWA con 1 sola consulta Firestore por mes
+ * UX tipo Native App - Tema Light Integrado
  */
 export const AttendanceCalendar = ({ userId, onMonthChange }) => {
     const [currentMonth, setCurrentMonth] = useState(new Date());
     const [attendanceDates, setAttendanceDates] = useState([]);
     const [loading, setLoading] = useState(false);
+
+    // Estado para el modal de detalles
+    const [selectedDate, setSelectedDate] = useState(null);
+    const [isModalOpen, setIsModalOpen] = useState(false);
+
+    const scrollRef = useRef(null);
+    const navigate = useNavigate();
 
     // Cargar asistencia del mes actual
     useEffect(() => {
@@ -30,10 +44,19 @@ export const AttendanceCalendar = ({ userId, onMonthChange }) => {
         }
     }, [currentMonth, userId]);
 
+    // Auto-scroll al mes activo
+    useEffect(() => {
+        if (scrollRef.current) {
+            const activePill = scrollRef.current.querySelector('[data-active="true"]');
+            if (activePill) {
+                activePill.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+            }
+        }
+    }, [currentMonth]);
+
     const loadMonthAttendance = async () => {
         setLoading(true);
         try {
-            // Llamar al callback proporcionado para cargar datos
             if (onMonthChange) {
                 const dates = await onMonthChange(currentMonth);
                 setAttendanceDates(dates || []);
@@ -46,15 +69,9 @@ export const AttendanceCalendar = ({ userId, onMonthChange }) => {
         }
     };
 
-    // Navegación
-    const prevMonth = () => setCurrentMonth(subMonths(currentMonth, 1));
-    const nextMonth = () => setCurrentMonth(addMonths(currentMonth, 1));
-    const goToToday = () => setCurrentMonth(new Date());
-
-    // Verificar si un día tiene asistencia
+    // Verificar asistencia
     const hasAttendance = (date) => {
         return attendanceDates.some(attendanceDate => {
-            // Manejar tanto strings ISO como objetos Date
             const compareDate = typeof attendanceDate === 'string'
                 ? new Date(attendanceDate + 'T00:00:00')
                 : attendanceDate;
@@ -62,156 +79,194 @@ export const AttendanceCalendar = ({ userId, onMonthChange }) => {
         });
     };
 
-    // Renderizar header con navegación
-    const renderHeader = () => {
-        const isCurrentMonth = isSameMonth(currentMonth, new Date());
+    // Manejar click en un día
+    const handleDayClick = (date) => {
+        if (hasAttendance(date)) {
+            setSelectedDate(date);
+            setIsModalOpen(true);
+        }
+    };
+
+    const handleCloseModal = () => {
+        setIsModalOpen(false);
+        setTimeout(() => setSelectedDate(null), 300); // Limpiar después de animación
+    };
+
+    // --- UX COMPONENTS ---
+
+    // 1. Navegación de meses (Estilo Tab Clean)
+    const renderMonthSelector = () => {
+        // Rango dinámico
+        const months = [-2, -1, 0, 1, 2].map(offset => addMonths(currentMonth, offset));
 
         return (
-            <div className="flex items-center justify-between mb-4">
-                <button
-                    onClick={prevMonth}
-                    disabled={loading}
-                    className="p-2 rounded-lg hover:bg-gray-100 active:bg-gray-200 transition-colors disabled:opacity-50"
-                    aria-label="Mes anterior"
-                >
-                    <svg className="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                    </svg>
-                </button>
-
-                <div className="text-center">
-                    <h2 className="text-lg font-bold text-gray-900 capitalize">
-                        {format(currentMonth, 'MMMM yyyy', { locale: es })}
+            <div className="bg-white pt-6 pb-2 rounded-t-3xl shadow-sm border-b border-gray-100 relative z-10 mx-4 mt-6">
+                {/* Header de Año */}
+                <div className="px-6 mb-2 flex items-center justify-between">
+                    <h2 className="text-2xl font-bold text-gray-800 tracking-tight">
+                        {format(currentMonth, 'yyyy')}
                     </h2>
-                    {!isCurrentMonth && (
+                    {!isSameMonth(currentMonth, new Date()) && (
                         <button
-                            onClick={goToToday}
-                            className="text-xs text-primary-600 hover:text-primary-700 mt-1"
+                            onClick={() => setCurrentMonth(new Date())}
+                            className="text-xs font-semibold text-primary-600 bg-primary-50 px-3 py-1 rounded-full hover:bg-primary-100 transition-colors"
                         >
-                            Ir a hoy
+                            Volver a Hoy
                         </button>
                     )}
                 </div>
 
-                <button
-                    onClick={nextMonth}
-                    disabled={loading}
-                    className="p-2 rounded-lg hover:bg-gray-100 active:bg-gray-200 transition-colors disabled:opacity-50"
-                    aria-label="Mes siguiente"
+                {/* Scroll Horizontal de Meses */}
+                <div
+                    ref={scrollRef}
+                    className="flex overflow-x-auto gap-1 px-4 pb-2 scrollbar-hide mask-fade-right snap-x snap-mandatory"
                 >
-                    <svg className="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
-                </button>
+                    {/* Espaciador para centrar en mobile si es necesario */}
+                    <div className="w-[calc(50%-50px)] flex-shrink-0 md:hidden"></div>
+
+                    {months.map((date, i) => {
+                        const isActive = isSameMonth(date, currentMonth);
+                        return (
+                            <button
+                                key={date.toString()} // Key estable para evitar re-montaje innecesario
+                                data-active={isActive}
+                                onClick={() => setCurrentMonth(date)}
+                                className={`
+                                    flex-shrink-0 relative py-2 w-[100px] rounded-full text-sm font-bold capitalize transition-all duration-300
+                                    snap-center flex items-center justify-center
+                                    ${isActive
+                                        ? 'bg-primary-600 text-white shadow-md scale-100 z-10'
+                                        : 'bg-transparent text-gray-400 hover:bg-gray-50 hover:text-gray-600 scale-90'
+                                    }
+                                `}
+                            >
+                                {format(date, 'MMMM', { locale: es })}
+                            </button>
+                        );
+                    })}
+
+                    {/* Espaciador final */}
+                    <div className="w-[calc(50%-50px)] flex-shrink-0 md:hidden"></div>
+                </div>
             </div>
         );
     };
 
-    // Renderizar días de la semana
-    const renderDaysOfWeek = () => {
-        const days = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
-
-        return (
-            <div className="grid grid-cols-7 gap-1 mb-2">
-                {days.map((day, index) => (
-                    <div
-                        key={index}
-                        className="text-center text-xs font-semibold text-gray-600 py-2"
-                    >
-                        {day}
-                    </div>
-                ))}
-            </div>
-        );
-    };
-
-    // Renderizar celdas del calendario
-    const renderCells = () => {
+    // 2. Calendario Visual (Tema Light)
+    const renderCalendarGrid = () => {
         const monthStart = startOfMonth(currentMonth);
         const monthEnd = endOfMonth(monthStart);
         const startDate = startOfWeek(monthStart, { weekStartsOn: 0 });
         const endDate = endOfWeek(monthEnd, { weekStartsOn: 0 });
 
-        const rows = [];
-        let days = [];
+        const days = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+        const grid = [];
         let day = startDate;
 
+        // Header Semanal
+        const weekHeader = (
+            <div className="grid grid-cols-7 mb-4 px-2">
+                {days.map(d => (
+                    <div key={d} className="text-center text-xs font-bold text-gray-400 uppercase tracking-wider">
+                        {d}
+                    </div>
+                ))}
+            </div>
+        );
+
+        // Generar celdas
         while (day <= endDate) {
+            const weekDays = [];
             for (let i = 0; i < 7; i++) {
                 const cloneDay = day;
                 const isCurrentMonth = isSameMonth(day, monthStart);
                 const isDayToday = isToday(day);
                 const dayHasAttendance = hasAttendance(day);
 
-                days.push(
-                    <div
-                        key={day}
-                        className={`
-              relative aspect-square flex items-center justify-center rounded-lg
-              transition-all duration-200
-              ${!isCurrentMonth ? 'text-gray-300' : 'text-gray-900'}
-              ${isDayToday ? 'bg-primary-100 border-2 border-primary-500 font-bold' : ''}
-              ${dayHasAttendance && !isDayToday ? 'bg-success-500 text-white font-semibold shadow-sm' : ''}
-              ${!isCurrentMonth ? 'opacity-40' : ''}
-            `}
-                    >
-                        <span className="text-sm">
-                            {format(day, 'd')}
-                        </span>
+                weekDays.push(
+                    <div key={day.toString()} className="aspect-square p-1 flex items-center justify-center relative">
+                        {isCurrentMonth ? (
+                            <div
+                                onClick={() => handleDayClick(cloneDay)}
+                                className={`
+                                    w-10 h-10 rounded-full flex items-center justify-center relative
+                                    transition-all duration-200
+                                    ${dayHasAttendance ? 'cursor-pointer active:scale-95' : ''}
+                                    ${isDayToday && !dayHasAttendance
+                                        ? 'bg-blue-50 text-blue-600 font-bold ring-1 ring-blue-200 shadow-sm'
+                                        : 'text-gray-700'
+                                    }
+                                    ${dayHasAttendance
+                                        ? 'bg-success-50 text-success-700 font-bold hover:bg-success-100'
+                                        : ''
+                                    }
+                                `}
+                            >
+                                <span className="text-sm z-10">{format(day, 'd')}</span>
 
-                        {/* Indicador de asistencia */}
-                        {dayHasAttendance && (
-                            <div className="absolute top-1 right-1">
-                                <div className="w-1.5 h-1.5 bg-white rounded-full" />
+                                {/* Indicador Asistencia - Punto Flotante */}
+                                {dayHasAttendance && (
+                                    <div className="absolute top-0 right-0 transform translate-x-1 -translate-y-1">
+                                        <div className="w-3 h-3 bg-success-500 rounded-full border-2 border-white shadow-sm flex items-center justify-center">
+                                            <svg className="w-2 h-2 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={4}>
+                                                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                            </svg>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
-                        )}
-
-                        {/* Indicador de día actual */}
-                        {isDayToday && !dayHasAttendance && (
-                            <div className="absolute bottom-1 left-1/2 transform -translate-x-1/2">
-                                <div className="w-1 h-1 bg-primary-600 rounded-full" />
-                            </div>
-                        )}
+                        ) : null}
                     </div>
                 );
                 day = addDays(day, 1);
             }
-
-            rows.push(
-                <div key={day} className="grid grid-cols-7 gap-1">
-                    {days}
-                </div>
-            );
-            days = [];
+            grid.push(<div key={day} className="grid grid-cols-7 gap-y-1">{weekDays}</div>);
         }
 
-        return <div className="space-y-1">{rows}</div>;
+        return (
+            <div className="bg-white mx-4 p-4 pb-24 min-h-[400px] rounded-b-3xl -mt-4 shadow-[0_10px_40px_-10px_rgba(0,0,0,0.08)] relative overflow-hidden border-t border-gray-50">
+                {/* Loader Overlay */}
+                {loading && (
+                    <div className="absolute inset-0 bg-white/60 backdrop-blur-[1px] flex items-center justify-center z-20">
+                        <div className="w-8 h-8 border-2 border-primary-500 border-t-transparent rounded-full animate-spin" />
+                    </div>
+                )}
+
+                {weekHeader}
+                <div className="space-y-2">{grid}</div>
+            </div>
+        );
     };
 
-    return (
-        <div className="bg-white rounded-xl shadow-sm p-4 relative">
-            {/* Loading overlay */}
-            {loading && (
-                <div className="absolute inset-0 bg-white bg-opacity-75 flex items-center justify-center z-10 rounded-xl">
-                    <div className="w-8 h-8 border-3 border-primary-600 border-t-transparent rounded-full animate-spin" />
-                </div>
-            )}
-
-            {renderHeader()}
-            {renderDaysOfWeek()}
-            {renderCells()}
-
-            {/* Leyenda */}
-            <div className="mt-4 flex items-center gap-4 text-xs text-gray-600">
-                <div className="flex items-center gap-1.5">
-                    <div className="w-4 h-4 bg-success-500 rounded" />
-                    <span>Asistencia</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                    <div className="w-4 h-4 bg-primary-100 border-2 border-primary-500 rounded" />
-                    <span>Hoy</span>
-                </div>
+    // 4. FAB - Botón Flotante (Primary Color)
+    const renderFAB = () => (
+        <button
+            onClick={() => navigate(ROUTES.USER_SCAN_QR)}
+            className="absolute bottom-6 left-1/2 -translate-x-1/2 z-30 group"
+            aria-label="Registrar Asistencia"
+        >
+            <div className="absolute inset-0 bg-primary-600 rounded-full blur opacity-30 group-hover:opacity-50 transition-opacity duration-300 translate-y-2"></div>
+            <div className="relative w-16 h-16 bg-gradient-to-br from-primary-500 to-primary-600 rounded-full flex items-center justify-center text-white shadow-xl transform transition-transform duration-200 group-active:scale-95 border-2 border-white/20">
+                <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
+                </svg>
             </div>
+        </button>
+    );
+
+    return (
+        <div className="relative pb-10">
+            {renderMonthSelector()}
+            {renderCalendarGrid()}
+            {renderFAB()}
+
+            {/* Modal de Detalle */}
+            <DayDetailModal
+                date={selectedDate}
+                userId={userId}
+                isOpen={isModalOpen}
+                onClose={handleCloseModal}
+            />
         </div>
     );
 };

@@ -41,6 +41,7 @@ body {
   from {
     opacity: 0;
   }
+
   to {
     opacity: 1;
   }
@@ -51,6 +52,7 @@ body {
     transform: translateY(20px);
     opacity: 0;
   }
+
   to {
     transform: translateY(0);
     opacity: 1;
@@ -62,6 +64,7 @@ body {
     transform: translateY(-20px);
     opacity: 0;
   }
+
   to {
     transform: translateY(0);
     opacity: 1;
@@ -73,6 +76,7 @@ body {
     transform: scale(0.9);
     opacity: 0;
   }
+
   to {
     transform: scale(1);
     opacity: 1;
@@ -116,40 +120,43 @@ body {
   .safe-right {
     padding-right: env(safe-area-inset-right);
   }
+
+  /* Custom Utilities for Calendar */
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .mask-fade-right {
+    mask-image: linear-gradient(to right, black 85%, transparent 100%);
+    -webkit-mask-image: linear-gradient(to right, black 85%, transparent 100%);
+  }
 }
 
 /* Componentes personalizados */
 @layer components {
   .btn-primary {
-    @apply bg-primary-600 text-white font-medium py-3 px-6 rounded-lg 
-           shadow-md hover:bg-primary-700 active:bg-primary-800 
-           transition-all duration-200 touch-manipulation
-           disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply bg-primary-600 text-white font-medium py-3 px-6 rounded-lg shadow-md hover:bg-primary-700 active:bg-primary-800 transition-all duration-200 touch-manipulation disabled:opacity-50 disabled:cursor-not-allowed;
   }
 
   .btn-secondary {
-    @apply bg-gray-200 text-gray-800 font-medium py-3 px-6 rounded-lg 
-           hover:bg-gray-300 active:bg-gray-400 
-           transition-all duration-200 touch-manipulation
-           disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply bg-gray-200 text-gray-800 font-medium py-3 px-6 rounded-lg hover:bg-gray-300 active:bg-gray-400 transition-all duration-200 touch-manipulation disabled:opacity-50 disabled:cursor-not-allowed;
   }
 
   .btn-success {
-    @apply bg-success-600 text-white font-medium py-3 px-6 rounded-lg 
-           shadow-md hover:bg-success-700 active:bg-success-800 
-           transition-all duration-200 touch-manipulation;
+    @apply bg-success-600 text-white font-medium py-3 px-6 rounded-lg shadow-md hover:bg-success-700 active:bg-success-800 transition-all duration-200 touch-manipulation;
   }
 
   .btn-danger {
-    @apply bg-danger-600 text-white font-medium py-3 px-6 rounded-lg 
-           shadow-md hover:bg-danger-700 active:bg-danger-800 
-           transition-all duration-200 touch-manipulation;
+    @apply bg-danger-600 text-white font-medium py-3 px-6 rounded-lg shadow-md hover:bg-danger-700 active:bg-danger-800 transition-all duration-200 touch-manipulation;
   }
 
   .input-field {
-    @apply w-full px-4 py-3 border border-gray-300 rounded-lg 
-           focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent
-           transition-all duration-200 text-base;
+    @apply w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200 text-base;
   }
 
   .card {
@@ -193,12 +200,16 @@ body {
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 /* Offline indicator */
 .offline-banner {
-  @apply fixed top-0 left-0 right-0 bg-yellow-500 text-white text-center py-2 z-50 
-         animate-slide-down text-sm font-medium;
+  @apply fixed top-0 left-0 right-0 bg-yellow-500 text-white text-center py-2 z-50 animate-slide-down text-sm font-medium;
 }
