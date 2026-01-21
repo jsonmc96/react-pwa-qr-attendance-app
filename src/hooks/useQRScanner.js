@@ -1,24 +1,29 @@
-import { useState, useEffect } from 'react';
-import { Html5Qrcode } from 'html5-qrcode';
+import { useState, useEffect, useRef } from 'react';
+import { BrowserQRCodeReader } from '@zxing/browser';
 
 export const useQRScanner = () => {
     const [isScanning, setIsScanning] = useState(false);
-    const [scanner, setScanner] = useState(null);
     const [error, setError] = useState(null);
     const [hasPermission, setHasPermission] = useState(null);
+    const codeReaderRef = useRef(null);
+    const videoRef = useRef(null);
 
     useEffect(() => {
         return () => {
             // Cleanup: detener scanner al desmontar
-            if (scanner) {
-                scanner.stop().catch(err => console.error('Error stopping scanner:', err));
-            }
+            stopScanning();
         };
-    }, [scanner]);
+    }, []);
 
     const requestPermission = async () => {
         try {
-            const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+            const stream = await navigator.mediaDevices.getUserMedia({
+                video: {
+                    facingMode: 'environment',
+                    width: { ideal: 1920 },
+                    height: { ideal: 1080 }
+                }
+            });
             stream.getTracks().forEach(track => track.stop());
             setHasPermission(true);
             return true;
@@ -30,7 +35,7 @@ export const useQRScanner = () => {
         }
     };
 
-    const startScanning = async (elementId, onSuccess, onError) => {
+    const startScanning = async (videoElementId, onSuccess, onError) => {
         try {
             setError(null);
 
@@ -42,37 +47,50 @@ export const useQRScanner = () => {
                 }
             }
 
-            // Marcar como scanning primero para que el elemento se renderice
+            // Marcar como scanning primero
             setIsScanning(true);
 
             // Esperar a que el DOM se actualice
             await new Promise(resolve => setTimeout(resolve, 100));
 
             // Verificar que el elemento existe
-            const element = document.getElementById(elementId);
-            if (!element) {
-                throw new Error('Elemento del scanner no encontrado');
+            const videoElement = document.getElementById(videoElementId);
+            if (!videoElement) {
+                throw new Error('Elemento de video no encontrado');
             }
 
-            const html5QrCode = new Html5Qrcode(elementId);
-            setScanner(html5QrCode);
+            videoRef.current = videoElement;
 
-            const config = {
-                fps: 10,
-                qrbox: { width: 250, height: 250 },
-                aspectRatio: 1.0
+            // Crear instancia de ZXing reader
+            const codeReader = new BrowserQRCodeReader();
+            codeReaderRef.current = codeReader;
+
+            // Configurar constraints de video para máxima calidad y velocidad
+            const constraints = {
+                video: {
+                    facingMode: 'environment',
+                    width: { ideal: 1920 },
+                    height: { ideal: 1080 },
+                    focusMode: 'continuous',
+                    frameRate: { ideal: 30 }
+                }
             };
 
-            await html5QrCode.start(
-                { facingMode: 'environment' }, // Cámara trasera
-                config,
-                (decodedText) => {
-                    // QR escaneado exitosamente
-                    onSuccess(decodedText);
-                },
-                (errorMessage) => {
-                    // Error de escaneo (normal mientras busca QR)
-                    // No mostrar estos errores al usuario
+            // Iniciar escaneo continuo
+            await codeReader.decodeFromConstraints(
+                constraints,
+                videoElementId,
+                (result, error) => {
+                    if (result) {
+                        // ✅ QR detectado exitosamente
+                        console.log('QR detectado:', result.getText());
+                        onSuccess(result.getText());
+                    }
+                    // Los errores de "no encontrado" son normales durante el escaneo
+                    // Solo logueamos errores críticos
+                    if (error && error.name !== 'NotFoundException') {
+                        console.warn('Scanner error:', error);
+                    }
                 }
             );
 
@@ -88,11 +106,12 @@ export const useQRScanner = () => {
     };
 
     const stopScanning = async () => {
-        if (scanner && isScanning) {
+        if (codeReaderRef.current) {
             try {
-                await scanner.stop();
+                codeReaderRef.current.reset();
                 setIsScanning(false);
-                setScanner(null);
+                codeReaderRef.current = null;
+                videoRef.current = null;
             } catch (err) {
                 console.error('Error stopping scanner:', err);
             }

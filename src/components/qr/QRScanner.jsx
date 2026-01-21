@@ -15,7 +15,7 @@ export const QRScanner = ({ onSuccess }) => {
     const [result, setResult] = useState(null);
     const [checking, setChecking] = useState(true);
     const [alreadyRegistered, setAlreadyRegistered] = useState(false);
-    const [isProcessing, setIsProcessing] = useState(false); // ✅ NUEVO: Evitar múltiples escaneos
+    const [isProcessing, setIsProcessing] = useState(false);
 
     useEffect(() => {
         checkEligibility();
@@ -39,20 +39,18 @@ export const QRScanner = ({ onSuccess }) => {
 
     const handleStartScan = async () => {
         setResult(null);
-        setIsProcessing(false); // ✅ Resetear flag al iniciar
+        setIsProcessing(false);
 
-        // Primero, mostrar el contenedor del scanner
-        // (esto hace que el elemento #qr-reader se renderice)
         const success = await startScanning(
-            'qr-reader',
+            'qr-video',
             async (decodedText) => {
-                // ✅ CRÍTICO: Evitar múltiples llamadas
+                // Evitar múltiples llamadas
                 if (isProcessing) {
                     console.log('Ya procesando QR, ignorando escaneo duplicado');
                     return;
                 }
 
-                setIsProcessing(true); // ✅ Marcar como procesando
+                setIsProcessing(true);
 
                 // QR escaneado exitosamente
                 await stopScanning();
@@ -73,7 +71,7 @@ export const QRScanner = ({ onSuccess }) => {
                         data: attendanceResult.data
                     });
 
-                    // Vibración de éxito (patrón largo-corto-largo)
+                    // Vibración de éxito
                     if ('vibrate' in navigator) {
                         navigator.vibrate([200, 100, 200]);
                     }
@@ -91,12 +89,11 @@ export const QRScanner = ({ onSuccess }) => {
                         errorType: attendanceResult.errorType
                     });
 
-                    // Vibración de error (patrón corto-corto-corto)
+                    // Vibración de error
                     if ('vibrate' in navigator) {
                         navigator.vibrate([100, 50, 100, 50, 100]);
                     }
 
-                    // ✅ Resetear flag para permitir reintentar
                     setIsProcessing(false);
                 }
             },
@@ -105,7 +102,7 @@ export const QRScanner = ({ onSuccess }) => {
                     success: false,
                     message: error
                 });
-                setIsProcessing(false); // ✅ Resetear flag en error
+                setIsProcessing(false);
             }
         );
 
@@ -114,7 +111,7 @@ export const QRScanner = ({ onSuccess }) => {
                 success: false,
                 message: scanError || 'No se pudo iniciar el escáner. Verifica los permisos de cámara.'
             });
-            setIsProcessing(false); // ✅ Resetear flag si no inicia
+            setIsProcessing(false);
         }
     };
 
@@ -128,7 +125,7 @@ export const QRScanner = ({ onSuccess }) => {
     };
 
     const handleGoToCalendar = () => {
-        navigate('/user/my-attendance');
+        navigate('/user/attendance');
     };
 
     if (checking) {
@@ -166,10 +163,52 @@ export const QRScanner = ({ onSuccess }) => {
         );
     }
 
+    // Modo Fullscreen cuando está escaneando
+    if (isScanning) {
+        return (
+            <div className="fixed inset-0 z-50 bg-black">
+                {/* Video Fullscreen */}
+                <video
+                    id="qr-video"
+                    className="w-full h-full object-cover"
+                    autoPlay
+                    playsInline
+                />
+
+                {/* Overlay con instrucciones */}
+                <div className="absolute inset-0 pointer-events-none">
+                    {/* Área de enfoque visual (opcional) */}
+                    <div className="absolute inset-0 flex items-center justify-center">
+                        <div className="w-64 h-64 border-4 border-white/30 rounded-3xl animate-pulse" />
+                    </div>
+
+                    {/* Instrucción flotante */}
+                    <div className="absolute top-20 left-0 right-0 text-center">
+                        <div className="inline-block bg-black/70 backdrop-blur-sm px-6 py-3 rounded-full">
+                            <p className="text-white font-semibold text-lg">
+                                📸 Apunta al código QR
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Botón de cancelar */}
+                <div className="absolute bottom-8 left-0 right-0 flex justify-center pointer-events-auto">
+                    <button
+                        onClick={handleStopScan}
+                        className="bg-white/90 backdrop-blur-sm text-gray-900 px-8 py-4 rounded-full font-bold text-lg shadow-xl hover:bg-white transition-all active:scale-95"
+                    >
+                        ✕ Cancelar
+                    </button>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <Card title="Registrar Asistencia">
             <div className="space-y-4">
-                {!isScanning && !result && (
+                {!result && (
                     <div className="text-center py-8">
                         <div className="w-24 h-24 bg-primary-100 rounded-full flex items-center justify-center mx-auto mb-6 animate-pulse">
                             <span className="text-5xl">📷</span>
@@ -187,8 +226,7 @@ export const QRScanner = ({ onSuccess }) => {
                             <ul className="text-sm text-blue-800 space-y-1">
                                 <li>• Permite el acceso a la cámara</li>
                                 <li>• Apunta al código QR del día</li>
-                                <li>• Mantén el código centrado en el cuadro</li>
-                                <li>• El escaneo es automático</li>
+                                <li>• La detección es automática e instantánea</li>
                             </ul>
                         </div>
 
@@ -198,31 +236,6 @@ export const QRScanner = ({ onSuccess }) => {
                             disabled={loading}
                         >
                             📸 Iniciar Escáner
-                        </Button>
-                    </div>
-                )}
-
-                {isScanning && (
-                    <div className="space-y-4">
-                        <div className="bg-gradient-to-br from-primary-50 to-primary-100 p-4 rounded-lg">
-                            <div
-                                id="qr-reader"
-                                className="w-full rounded-lg overflow-hidden"
-                            />
-                        </div>
-
-                        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-                            <p className="text-sm text-yellow-800 text-center">
-                                🎯 Centra el código QR en el cuadro
-                            </p>
-                        </div>
-
-                        <Button
-                            onClick={handleStopScan}
-                            variant="secondary"
-                            fullWidth
-                        >
-                            Cancelar Escaneo
                         </Button>
                     </div>
                 )}
@@ -295,7 +308,6 @@ export const QRScanner = ({ onSuccess }) => {
                                     {result.message}
                                 </p>
 
-                                {/* Mensajes de ayuda según el tipo de error */}
                                 <div className="bg-white rounded-lg p-4 mb-4 text-left">
                                     <p className="text-sm text-gray-700">
                                         {result.errorType === 'expired' && (

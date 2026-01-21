@@ -171,7 +171,7 @@ export default defineConfig({
         manualChunks: {
           'react-vendor': ['react', 'react-dom', 'react-router-dom'],
           'firebase-vendor': ['firebase/app', 'firebase/auth', 'firebase/firestore'],
-          'qr-vendor': ['qrcode.react', 'html5-qrcode']
+          'qr-vendor': ['qrcode.react', '@zxing/browser', '@zxing/library']
         }
       }
     }
