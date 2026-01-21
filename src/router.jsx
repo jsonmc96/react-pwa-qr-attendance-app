@@ -11,6 +11,7 @@ import { ScanQR } from './pages/user/ScanQR';
 import { MyAttendance } from './pages/user/MyAttendance';
 import { ROUTES, ROLES } from './utils/constants';
 import { useAuth } from './context/AuthContext';
+import { MainLayout } from './components/layout/MainLayout';
 
 export const AppRouter = () => {
     const { user, loading } = useAuth();
@@ -42,79 +43,72 @@ export const AppRouter = () => {
                     }
                 />
 
-                {/* Rutas de Admin */}
-                <Route
-                    path={ROUTES.ADMIN_DASHBOARD}
-                    element={
-                        <ProtectedRoute>
+                {/* Rutas Protegidas con Layout Persistente */}
+                <Route element={
+                    <ProtectedRoute>
+                        <MainLayout />
+                    </ProtectedRoute>
+                }>
+                    {/* Rutas de Admin */}
+                    <Route
+                        path={ROUTES.ADMIN_DASHBOARD}
+                        element={
                             <RoleGuard allowedRole={ROLES.ADMIN}>
                                 <AdminDashboard />
                             </RoleGuard>
-                        </ProtectedRoute>
-                    }
-                />
-                <Route
-                    path={ROUTES.ADMIN_GENERATE_QR}
-                    element={
-                        <ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path={ROUTES.ADMIN_GENERATE_QR}
+                        element={
                             <RoleGuard allowedRole={ROLES.ADMIN}>
                                 <GenerateQR />
                             </RoleGuard>
-                        </ProtectedRoute>
-                    }
-                />
-                <Route
-                    path="/admin/qr-history"
-                    element={
-                        <ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path="/admin/qr-history"
+                        element={
                             <RoleGuard allowedRole={ROLES.ADMIN}>
                                 <QRHistoryPage />
                             </RoleGuard>
-                        </ProtectedRoute>
-                    }
-                />
-                <Route
-                    path={ROUTES.ADMIN_REPORTS}
-                    element={
-                        <ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path={ROUTES.ADMIN_REPORTS}
+                        element={
                             <RoleGuard allowedRole={ROLES.ADMIN}>
                                 <AttendanceReport />
                             </RoleGuard>
-                        </ProtectedRoute>
-                    }
-                />
+                        }
+                    />
 
-                {/* Rutas de Usuario */}
-                <Route
-                    path={ROUTES.USER_DASHBOARD}
-                    element={
-                        <ProtectedRoute>
+                    {/* Rutas de Usuario */}
+                    <Route
+                        path={ROUTES.USER_DASHBOARD}
+                        element={
                             <RoleGuard allowedRole={ROLES.USER}>
                                 <UserDashboard />
                             </RoleGuard>
-                        </ProtectedRoute>
-                    }
-                />
-                <Route
-                    path={ROUTES.USER_SCAN_QR}
-                    element={
-                        <ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path={ROUTES.USER_SCAN_QR}
+                        element={
                             <RoleGuard allowedRole={ROLES.USER}>
                                 <ScanQR />
                             </RoleGuard>
-                        </ProtectedRoute>
-                    }
-                />
-                <Route
-                    path={ROUTES.USER_ATTENDANCE}
-                    element={
-                        <ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path={ROUTES.USER_ATTENDANCE}
+                        element={
                             <RoleGuard allowedRole={ROLES.USER}>
                                 <MyAttendance />
                             </RoleGuard>
-                        </ProtectedRoute>
-                    }
-                />
+                        }
+                    />
+                </Route>
 
                 {/* Ruta por defecto */}
                 <Route

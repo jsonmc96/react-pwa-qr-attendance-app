@@ -1,5 +1,5 @@
 import { Header } from '../../components/layout/Header';
-import { BottomNav } from '../../components/layout/BottomNav';
+
 import { Card } from '../../components/common/Card';
 import { useNavigate } from 'react-router-dom';
 import { ROUTES } from '../../utils/constants';
@@ -11,7 +11,7 @@ export const AdminDashboard = () => {
     const { user } = useAuth();
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 pb-20">
+        <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
             <Header title="Panel de Administrador" />
 
             <main className="max-w-2xl mx-auto px-4 py-6 space-y-6">
@@ -107,7 +107,7 @@ export const AdminDashboard = () => {
                 </Card>
             </main>
 
-            <BottomNav />
+
         </div>
     );
 };

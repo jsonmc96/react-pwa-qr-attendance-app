@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Header } from '../../components/layout/Header';
-import { BottomNav } from '../../components/layout/BottomNav';
+
 import { Card } from '../../components/common/Card';
 import { EmptyState } from '../../components/common/EmptyState';
 import { Loading } from '../../components/common/Loading';
@@ -171,7 +171,7 @@ export const AttendanceReport = () => {
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 pb-20">
+        <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
             <Header title="Reportes de Asistencia" />
 
             <main className="max-w-4xl mx-auto px-4 py-6 space-y-6">
@@ -312,8 +312,8 @@ export const AttendanceReport = () => {
                                                 <button
                                                     onClick={() => setUserViewMode('total')}
                                                     className={`px-4 py-3 rounded-2xl font-semibold transition-all ${userViewMode === 'total'
-                                                            ? 'bg-gradient-to-r from-green-600 to-green-700 text-white shadow-lg'
-                                                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                                        ? 'bg-gradient-to-r from-green-600 to-green-700 text-white shadow-lg'
+                                                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                                                         }`}
                                                 >
                                                     <div className="flex items-center justify-center gap-2">
@@ -324,8 +324,8 @@ export const AttendanceReport = () => {
                                                 <button
                                                     onClick={() => setUserViewMode('detail')}
                                                     className={`px-4 py-3 rounded-2xl font-semibold transition-all ${userViewMode === 'detail'
-                                                            ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg'
-                                                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                                        ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg'
+                                                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                                                         }`}
                                                 >
                                                     <div className="flex items-center justify-center gap-2">
@@ -462,7 +462,7 @@ export const AttendanceReport = () => {
                 )}
             </main>
 
-            <BottomNav />
+
         </div>
     );
 };

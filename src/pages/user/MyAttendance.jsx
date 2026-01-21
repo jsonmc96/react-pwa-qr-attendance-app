@@ -1,5 +1,5 @@
 import { Header } from '../../components/layout/Header';
-import { BottomNav } from '../../components/layout/BottomNav';
+
 import { AttendanceCalendar } from '../../components/calendar/AttendanceCalendar';
 import { useMonthlyAttendance } from '../../hooks/useMonthlyAttendance';
 import { useAuth } from '../../context/AuthContext';
@@ -9,7 +9,7 @@ export const MyAttendance = () => {
     const { loadMonth } = useMonthlyAttendance(user?.uid);
 
     return (
-        <div className="min-h-screen bg-gray-50 pb-20">
+        <div className="min-h-screen bg-gray-50">
             <Header title="Mi Asistencia" />
 
             <main className="max-w-2xl mx-auto px-4 py-6">
@@ -27,7 +27,7 @@ export const MyAttendance = () => {
                 </div>
             </main>
 
-            <BottomNav />
+
         </div>
     );
 };
