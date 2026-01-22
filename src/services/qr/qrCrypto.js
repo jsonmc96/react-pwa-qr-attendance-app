@@ -23,7 +23,12 @@ export const generateQRContent = async (date, secret) => {
     const salt = 'attendance_qr_v1'; // Versión del QR
     const dataToHash = `${date}|${qrSecret}|${salt}`;
 
-    return await generateHash(dataToHash);
+    const fullHash = await generateHash(dataToHash);
+
+    // ✨ OPTIMIZACIÓN: Solo primeros 12 caracteres para QR más simple
+    // 12 chars hex = 48 bits = 281 billones de combinaciones (seguro para uso diario)
+    // Genera QR con ~15x15 módulos en lugar de ~30x30 (mucho más fácil de leer)
+    return fullHash.substring(0, 12);
 };
 
 /**
@@ -35,6 +40,7 @@ export const generateQRContent = async (date, secret) => {
  */
 export const validateQRHash = async (scannedHash, date, secret) => {
     const expectedHash = await generateQRContent(date, secret);
+    // Comparar solo los primeros 12 caracteres (ambos ya son cortos ahora)
     return scannedHash === expectedHash;
 };
 

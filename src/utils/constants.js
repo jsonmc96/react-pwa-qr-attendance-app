@@ -22,9 +22,9 @@ export const STORAGE_KEYS = {
 };
 
 export const QR_CONFIG = {
-    SIZE: 256,
-    LEVEL: 'H', // High error correction
-    MARGIN: 2
+    SIZE: 1024,     // ✨ 1024px para pantallas LED grandes (excelente calidad)
+    LEVEL: 'M',     // ✨ Medium (15%) - Balance perfecto entre velocidad y corrección
+    MARGIN: 2       // Margen estándar
 };
 
 export const DATE_FORMATS = {
