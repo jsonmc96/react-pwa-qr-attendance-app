@@ -6,6 +6,7 @@ import { AdminDashboard } from './pages/admin/AdminDashboard';
 import { GenerateQR } from './pages/admin/GenerateQR';
 import { AttendanceReport } from './pages/admin/AttendanceReport';
 import { QRHistoryPage } from './pages/admin/QRHistoryPage';
+import { AdminSettings } from './pages/admin/AdminSettings';
 import { UserDashboard } from './pages/user/UserDashboard';
 import { ScanQR } from './pages/user/ScanQR';
 import { MyAttendance } from './pages/user/MyAttendance';
@@ -80,6 +81,14 @@ export const AppRouter = () => {
                         element={
                             <RoleGuard allowedRole={ROLES.ADMIN}>
                                 <AttendanceReport />
+                            </RoleGuard>
+                        }
+                    />
+                    <Route
+                        path="/admin/settings"
+                        element={
+                            <RoleGuard allowedRole={ROLES.ADMIN}>
+                                <AdminSettings />
                             </RoleGuard>
                         }
                     />

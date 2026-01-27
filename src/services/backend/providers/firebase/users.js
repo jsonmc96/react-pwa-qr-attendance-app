@@ -5,7 +5,7 @@ import { FIRESTORE_COLLECTIONS } from '../../../../utils/constants';
 /**
  * Obtiene el perfil de un usuario
  * @param {string} uid - UID del usuario
- * @returns {Promise<{uid, email, displayName, role}>}
+ * @returns {Promise<{uid, email, displayName, role, employeeType}>}
  */
 export const getProfile = async (uid) => {
     try {
@@ -21,7 +21,8 @@ export const getProfile = async (uid) => {
             uid,
             email: userData.email,
             displayName: userData.displayName || userData.email,
-            role: userData.role
+            role: userData.role,
+            employeeType: userData.employeeType || 'remote' // Default to remote if not set
         };
     } catch (error) {
         console.error('Error getting user profile:', error);
@@ -36,8 +37,8 @@ export const getProfile = async (uid) => {
 export const getAllUsers = async () => {
     try {
         const usersRef = collection(db, FIRESTORE_COLLECTIONS.USERS);
-        const q = query(usersRef, where('role', '==', 'user')); // Solo usuarios normales
-        const snapshot = await getDocs(q);
+        // Obtener TODOS los usuarios (incluyendo admins)
+        const snapshot = await getDocs(usersRef);
 
         return snapshot.docs.map(doc => ({
             uid: doc.id,

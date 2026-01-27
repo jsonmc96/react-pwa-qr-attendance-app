@@ -73,13 +73,16 @@ service cloud.firestore {
     
     match /users/{userId} {
       // Lectura: Cualquier usuario autenticado puede leer perfiles básicos
-      // (necesario para funcionalidad de ranking)
-      // Admin puede leer todos, usuarios pueden leer cualquier perfil
       allow read: if isAuthenticated();
       
-      // Escritura: Bloqueada desde el cliente
-      // Los usuarios se crean manualmente en Firebase Console o via Admin SDK
-      allow write: if false;
+      // Crear: Solo admins pueden crear usuarios
+      allow create: if isAdmin();
+      
+      // Actualizar: Admins pueden actualizar cualquier campo
+      allow update: if isAdmin();
+      
+      // Eliminar: Bloqueado
+      allow delete: if false;
     }
     
     // ========================================
@@ -154,5 +157,26 @@ service cloud.firestore {
     //   allow read: if isAuthenticated();
     //   allow write: if isAdmin();
     // }
+    
+    // ========================================
+    // COLLECTION: systemConfig
+    // ========================================
+    // Estructura:
+    // {
+    //   churchLocation: {
+    //     lat: number,
+    //     lng: number,
+    //     radiusMeters: number
+    //   }
+    // }
+    // ========================================
+    
+    match /systemConfig/{configId} {
+      // Lectura: Cualquier usuario autenticado puede leer configuración
+      allow read: if isAuthenticated();
+      
+      // Escritura: Solo admin puede actualizar configuración
+      allow write: if isAdmin();
+    }
   }
 }

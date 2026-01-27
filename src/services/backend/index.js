@@ -167,11 +167,13 @@ export const backend = {
          * Registra asistencia escaneando QR
          * @param {string} userId 
          * @param {string} qrHash 
+         * @param {Object} userData - Datos del usuario (opcional)
+         * @param {Object} locationData - Datos de ubicación GPS (opcional)
          * @returns {Promise<{success, message?, error?, date?}>}
          */
-        scanQr: async (userId, qrHash) => {
+        scanQr: async (userId, qrHash, userData = null, locationData = null) => {
             const { attendanceProvider } = await loadProviders();
-            return attendanceProvider.scanQr(userId, qrHash);
+            return attendanceProvider.scanQr(userId, qrHash, userData, locationData);
         },
 
         /**

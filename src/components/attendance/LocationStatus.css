@@ -1,0 +1,138 @@
+.location-status {
+    background: var(--card-bg);
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-lg);
+    box-shadow: var(--shadow-md);
+    margin-bottom: var(--spacing-lg);
+    border: 2px solid transparent;
+    transition: all var(--transition-normal);
+    display: flex;
+    align-items: flex-start;
+    gap: var(--spacing-md);
+}
+
+.location-status.loading {
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: var(--spacing-xl);
+    border-color: var(--border-color);
+}
+
+.location-status.valid {
+    border-color: var(--success);
+    background: linear-gradient(135deg, var(--card-bg) 0%, rgba(76, 175, 80, 0.05) 100%);
+}
+
+.location-status.invalid {
+    border-color: var(--error);
+    background: linear-gradient(135deg, var(--card-bg) 0%, rgba(244, 67, 54, 0.05) 100%);
+}
+
+.location-status.error {
+    border-color: var(--warning);
+    background: linear-gradient(135deg, var(--card-bg) 0%, rgba(255, 152, 0, 0.05) 100%);
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+}
+
+.location-status .status-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: var(--radius-full);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    flex-shrink: 0;
+}
+
+.location-status.valid .status-icon {
+    background: var(--success);
+    color: white;
+}
+
+.location-status.invalid .status-icon,
+.location-status.error .status-icon {
+    background: var(--error);
+    color: white;
+}
+
+.status-content {
+    flex: 1;
+}
+
+.status-content h4 {
+    margin: 0 0 var(--spacing-xs) 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.distance-info {
+    margin: 0;
+    font-size: 14px;
+    color: var(--text-secondary);
+}
+
+.distance-info strong {
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.limit-info {
+    color: var(--text-tertiary);
+    font-size: 13px;
+}
+
+.error-message {
+    margin: var(--spacing-sm) 0 0 0;
+    font-size: 13px;
+    color: var(--error);
+    font-weight: 500;
+}
+
+.btn-retry {
+    margin-top: var(--spacing-md);
+    padding: var(--spacing-sm) var(--spacing-lg);
+    background: var(--primary);
+    color: white;
+    border: none;
+    border-radius: var(--radius-md);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.btn-retry:hover {
+    background: var(--primary-dark);
+    transform: translateY(-1px);
+}
+
+.btn-retry:active {
+    transform: translateY(0);
+}
+
+.spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid var(--border-color);
+    border-top-color: var(--primary);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-bottom: var(--spacing-md);
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.location-status.loading p {
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: 14px;
+}

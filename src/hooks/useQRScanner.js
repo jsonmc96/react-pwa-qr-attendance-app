@@ -27,24 +27,70 @@ export const useQRScanner = () => {
             });
             stream.getTracks().forEach(track => track.stop());
             setHasPermission(true);
-            return true;
+            return { success: true };
         } catch (err) {
             console.error('Camera permission denied:', err);
+
+            // Use the new permission utilities for better error messages
+            const { getPermissionErrorDetails } = await import('../utils/permissions');
+            const errorDetails = getPermissionErrorDetails(err, 'camera');
+
             setHasPermission(false);
-            setError('Se requiere permiso de cámara para escanear códigos QR');
-            return false;
+            setError(errorDetails.message);
+
+            return {
+                success: false,
+                error: errorDetails.message,
+                errorCode: errorDetails.code,
+                isPermissionError: errorDetails.isPermissionError,
+                os: errorDetails.os
+            };
         }
     };
 
-    const startScanning = async (videoElementId, onSuccess, onError) => {
+    const startScanning = async (videoElementId, onSuccess, onError, userData = null) => {
         try {
             setError(null);
 
+            // ✅ VALIDACIÓN 1: Verificar ventana horaria
+            const { isWithinAllowedTime } = await import('../utils/timeValidation');
+            const timeValidation = isWithinAllowedTime();
+
+            if (!timeValidation.isValid) {
+                const errorMsg = timeValidation.message;
+                setError(errorMsg);
+                if (onError) onError(errorMsg);
+                return false;
+            }
+
+            // ✅ VALIDACIÓN 2: Verificar tipo de empleado (si se proporciona userData)
+            if (userData && userData.employeeType === 'onsite') {
+                // Para empleados presenciales, validar ubicación GPS
+                const { validateOnsiteLocation } = await import('../utils/locationValidation');
+                const { getSystemConfig } = await import('../services/backend/providers/firebase/admin');
+
+                // Obtener configuración de geofence
+                const systemConfig = await getSystemConfig();
+                const geofence = systemConfig.churchLocation;
+
+                // Validar ubicación
+                const locationValidation = await validateOnsiteLocation(geofence);
+
+                if (!locationValidation.isValid) {
+                    const errorMsg = locationValidation.error || locationValidation.message;
+                    setError(errorMsg);
+                    if (onError) onError(errorMsg);
+                    return false;
+                }
+
+                console.log('✅ Location validated:', locationValidation.distance, 'meters from church');
+            }
+
             // Solicitar permiso si no se ha solicitado
             if (hasPermission === null) {
-                const granted = await requestPermission();
-                if (!granted) {
-                    return false;
+                const permissionResult = await requestPermission();
+                if (!permissionResult.success) {
+                    return permissionResult; // Return detailed error info
                 }
             }
 
@@ -163,8 +209,12 @@ export const useQRScanner = () => {
             return true;
         } catch (err) {
             console.error('Error starting scanner:', err);
-            const errorMsg = err.message || 'Error al iniciar el escáner';
-            setError(errorMsg);
+
+            // Use permission utilities for better error messages
+            const { getPermissionErrorDetails } = await import('../utils/permissions');
+            const errorDetails = getPermissionErrorDetails(err, 'camera');
+
+            setError(errorDetails.message);
             setIsScanning(false);
             scanningRef.current = false;
 
@@ -174,8 +224,15 @@ export const useQRScanner = () => {
                 streamRef.current = null;
             }
 
-            if (onError) onError(errorMsg);
-            return false;
+            if (onError) onError(errorDetails.message);
+
+            return {
+                success: false,
+                error: errorDetails.message,
+                errorCode: errorDetails.code,
+                isPermissionError: errorDetails.isPermissionError,
+                os: errorDetails.os
+            };
         }
     };
 

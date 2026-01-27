@@ -10,9 +10,11 @@ import { db } from '../firebase/config';
  * Procesa el registro de asistencia
  * @param {string} userId - UID del usuario
  * @param {string} scannedHash - Hash del QR escaneado
+ * @param {Object} userData - Datos del usuario (opcional)
+ * @param {Object} locationData - Datos de ubicación GPS (opcional, solo para presenciales)
  * @returns {Promise<Object>} Resultado del registro
  */
-export const processAttendance = async (userId, scannedHash) => {
+export const processAttendance = async (userId, scannedHash, userData = null, locationData = null) => {
     try {
         const today = getTodayISO();
 
@@ -36,8 +38,19 @@ export const processAttendance = async (userId, scannedHash) => {
             };
         }
 
-        // 3. Registrar asistencia
-        await registerAttendance(userId, today, scannedHash);
+        // 3. Preparar datos de validación
+        const validationData = {};
+
+        if (userData && userData.employeeType) {
+            validationData.employeeType = userData.employeeType;
+        }
+
+        if (locationData) {
+            validationData.location = locationData;
+        }
+
+        // 4. Registrar asistencia con datos de validación
+        await registerAttendance(userId, today, scannedHash, validationData);
 
         // Vibración de éxito (si está disponible)
         if ('vibrate' in navigator) {

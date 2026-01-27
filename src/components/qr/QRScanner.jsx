@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '../common/Button';
 import { Card } from '../common/Card';
+import { PermissionInstructions } from '../common/PermissionInstructions';
 import { useQRScanner } from '../../hooks/useQRScanner';
 import { useAttendance } from '../../hooks/useAttendance';
 import { useAuth } from '../../context/AuthContext';
@@ -16,6 +17,7 @@ export const QRScanner = ({ onSuccess }) => {
     const [checking, setChecking] = useState(true);
     const [alreadyRegistered, setAlreadyRegistered] = useState(false);
     const [isProcessing, setIsProcessing] = useState(false);
+    const [permissionError, setPermissionError] = useState(null);
 
     useEffect(() => {
         checkEligibility();
@@ -40,8 +42,9 @@ export const QRScanner = ({ onSuccess }) => {
     const handleStartScan = async () => {
         setResult(null);
         setIsProcessing(false);
+        setPermissionError(null);
 
-        const success = await startScanning(
+        const scanResult = await startScanning(
             'qr-video',
             async (decodedText) => {
                 // Evitar múltiples llamadas
@@ -61,8 +64,8 @@ export const QRScanner = ({ onSuccess }) => {
                     message: 'Validando código QR...'
                 });
 
-                // Registrar asistencia
-                const attendanceResult = await registerAttendance(decodedText);
+                // Registrar asistencia con datos de validación
+                const attendanceResult = await registerAttendance(decodedText, user, null);
 
                 if (attendanceResult.success) {
                     setResult({
@@ -103,14 +106,29 @@ export const QRScanner = ({ onSuccess }) => {
                     message: error
                 });
                 setIsProcessing(false);
-            }
+            },
+            user // Pass user data for validation
         );
 
-        if (!success) {
-            setResult({
-                success: false,
-                message: scanError || 'No se pudo iniciar el escáner. Verifica los permisos de cámara.'
-            });
+        // Handle the result - could be boolean (success) or object (error details)
+        if (scanResult === true) {
+            // Success case - scanning started
+            return;
+        }
+
+        if (scanResult === false || (scanResult && !scanResult.success)) {
+            // Check if it's a permission error
+            if (scanResult && scanResult.isPermissionError) {
+                setPermissionError({
+                    type: 'camera',
+                    os: scanResult.os
+                });
+            } else {
+                setResult({
+                    success: false,
+                    message: scanResult?.error || scanError || 'No se pudo iniciar el escáner. Verifica los permisos de cámara.'
+                });
+            }
             setIsProcessing(false);
         }
     };
@@ -122,6 +140,7 @@ export const QRScanner = ({ onSuccess }) => {
 
     const handleRetry = () => {
         setResult(null);
+        setPermissionError(null);
     };
 
     const handleGoToCalendar = () => {
@@ -208,7 +227,16 @@ export const QRScanner = ({ onSuccess }) => {
     return (
         <Card title="Registrar Asistencia">
             <div className="space-y-4">
-                {!result && (
+
+                {/* Permission Error State */}
+                {permissionError && (
+                    <PermissionInstructions
+                        type={permissionError.type}
+                        onRetry={handleRetry}
+                    />
+                )}
+
+                {!result && !permissionError && (
                     <div className="text-center py-8">
                         <div className="w-24 h-24 bg-primary-100 rounded-full flex items-center justify-center mx-auto mb-6 animate-pulse">
                             <span className="text-5xl">📷</span>

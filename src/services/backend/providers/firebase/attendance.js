@@ -4,10 +4,12 @@ import { processAttendance, getMonthlyAttendance, canRegisterToday as canRegiste
  * Registra asistencia escaneando QR
  * @param {string} userId - UID del usuario
  * @param {string} qrHash - Hash del QR escaneado
+ * @param {Object} userData - Datos del usuario (opcional)
+ * @param {Object} locationData - Datos de ubicación GPS (opcional)
  * @returns {Promise<{success, message?, error?, date?}>}
  */
-export const scanQr = async (userId, qrHash) => {
-    return await processAttendance(userId, qrHash);
+export const scanQr = async (userId, qrHash, userData = null, locationData = null) => {
+    return await processAttendance(userId, qrHash, userData, locationData);
 };
 
 /**

@@ -66,9 +66,13 @@ export const getDailyQR = async (date) => {
  * @param {string} userId - UID del usuario
  * @param {string} date - Fecha en formato ISO
  * @param {string} qrHash - Hash del QR escaneado
+ * @param {Object} validationData - Datos adicionales de validación (opcional)
+ * @param {string} validationData.employeeType - Tipo de empleado ('onsite' | 'remote')
+ * @param {Object} validationData.location - Ubicación GPS (solo para presenciales)
+ * @param {Array} validationData.validationErrors - Errores de validación si los hubo
  * @returns {Promise<void>}
  */
-export const registerAttendance = async (userId, date, qrHash) => {
+export const registerAttendance = async (userId, date, qrHash, validationData = {}) => {
     try {
         // ID único: userId_fecha
         const attendanceId = `${userId}_${date}`;
@@ -80,13 +84,33 @@ export const registerAttendance = async (userId, date, qrHash) => {
             throw new Error('Ya has registrado tu asistencia hoy');
         }
 
-        // Crear registro
-        await setDoc(attendanceRef, {
+        // Crear registro con datos base
+        const attendanceRecord = {
             userId,
             date,
             timestamp: Timestamp.now(),
             qrHash
-        });
+        };
+
+        // Agregar datos de validación si existen
+        if (validationData.employeeType) {
+            attendanceRecord.employeeType = validationData.employeeType;
+        }
+
+        if (validationData.location) {
+            attendanceRecord.location = {
+                lat: validationData.location.lat,
+                lng: validationData.location.lng,
+                accuracy: validationData.location.accuracy || null,
+                timestamp: validationData.location.timestamp || Date.now()
+            };
+        }
+
+        if (validationData.validationErrors && validationData.validationErrors.length > 0) {
+            attendanceRecord.validationErrors = validationData.validationErrors;
+        }
+
+        await setDoc(attendanceRef, attendanceRecord);
     } catch (error) {
         console.error('Error registering attendance:', error);
         throw error;

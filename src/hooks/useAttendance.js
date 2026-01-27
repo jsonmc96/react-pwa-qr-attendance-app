@@ -5,12 +5,12 @@ export const useAttendance = (userId) => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
 
-    const registerAttendance = useCallback(async (qrHash) => {
+    const registerAttendance = useCallback(async (qrHash, userData = null, locationData = null) => {
         setLoading(true);
         setError(null);
 
         try {
-            const result = await backend.attendance.scanQr(userId, qrHash);
+            const result = await backend.attendance.scanQr(userId, qrHash, userData, locationData);
 
             if (!result.success) {
                 setError(result.error);

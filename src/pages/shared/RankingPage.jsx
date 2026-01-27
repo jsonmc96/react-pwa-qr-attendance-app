@@ -12,6 +12,13 @@ export const RankingPage = () => {
 
     useEffect(() => {
         loadRankingData();
+
+        // Auto-refresh every 30 seconds
+        const interval = setInterval(() => {
+            loadRankingData();
+        }, 30000);
+
+        return () => clearInterval(interval);
     }, []);
 
     const loadRankingData = async () => {
@@ -71,13 +78,28 @@ export const RankingPage = () => {
         return 'bg-white border-gray-100';
     };
 
+    // Check if we have any attendances to show podium
+    const hasAttendances = fullRanking.length > 0 && fullRanking[0]?.attendanceCount > 0;
+
     return (
         <div className="min-h-screen bg-gray-50 pb-20">
             <Header title="Ranking de Asistencia" />
 
             <div className="max-w-md mx-auto px-4 py-6">
-                {/* Top Stats Summary */}
-                {!loading && fullRanking.length > 0 && (
+                {/* Refresh Button */}
+                <div className="flex justify-end mb-4">
+                    <button
+                        onClick={loadRankingData}
+                        disabled={loading}
+                        className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50"
+                    >
+                        <span className={loading ? 'animate-spin' : ''}>🔄</span>
+                        Actualizar
+                    </button>
+                </div>
+
+                {/* Top Stats Summary - Only show if there are attendances */}
+                {!loading && hasAttendances && (
                     <div className="grid grid-cols-3 gap-2 mb-8 text-center animate-fade-in">
                         {/* 2nd Place */}
                         <div className="pt-8">

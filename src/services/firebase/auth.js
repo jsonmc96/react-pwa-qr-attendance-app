@@ -75,7 +75,8 @@ export const loginWithEmail = async (email, password) => {
             uid: user.uid,
             email: user.email,
             role: userData.role,
-            displayName: userData.displayName || email
+            displayName: userData.displayName || email,
+            employeeType: userData.employeeType || 'remote' // Default to remote if not set
         };
     } catch (error) {
         throw new Error(handleFirebaseError(error));
@@ -130,7 +131,8 @@ export const onAuthChange = (callback) => {
                         uid: user.uid,
                         email: user.email,
                         role: userData.role,
-                        displayName: userData.displayName || user.email
+                        displayName: userData.displayName || user.email,
+                        employeeType: userData.employeeType || 'remote' // Default to remote if not set
                     };
 
                     // 💾 Cache en sessionStorage para acceso rápido offline
