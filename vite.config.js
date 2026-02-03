@@ -67,38 +67,9 @@ export default defineConfig({
         // Archivos a precachear (offline shell)
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
 
-        // Estrategias de cache
+        // Estrategias de cache SOLO para assets estáticos
+        // Firebase Auth y Firestore NO se cachean (requieren respuestas frescas)
         runtimeCaching: [
-          // Firebase Firestore - Network First (datos frescos)
-          {
-            urlPattern: /^https:\/\/firestore\.googleapis\.com\/.*/i,
-            handler: 'NetworkFirst',
-            options: {
-              cacheName: 'firestore-cache',
-              expiration: {
-                maxEntries: 50,
-                maxAgeSeconds: 60 * 60 * 24 // 24 horas
-              },
-              cacheableResponse: {
-                statuses: [0, 200]
-              },
-              networkTimeoutSeconds: 10
-            }
-          },
-
-          // Firebase Auth - Network First
-          {
-            urlPattern: /^https:\/\/identitytoolkit\.googleapis\.com\/.*/i,
-            handler: 'NetworkFirst',
-            options: {
-              cacheName: 'firebase-auth-cache',
-              expiration: {
-                maxEntries: 20,
-                maxAgeSeconds: 60 * 60 // 1 hora
-              }
-            }
-          },
-
           // Google Fonts - Cache First (raramente cambian)
           {
             urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
@@ -142,6 +113,10 @@ export default defineConfig({
         // Limpiar caches antiguos
         cleanupOutdatedCaches: true,
 
+        // Activación inmediata del nuevo Service Worker
+        skipWaiting: true,
+        clientsClaim: true,
+
         // Tamaño máximo de cache
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024 // 5MB
       },
@@ -165,14 +140,17 @@ export default defineConfig({
   build: {
     target: 'esnext',
     minify: 'terser',
-    sourcemap: false,
+    // Conditional sourcemaps para debug (VITE_ENABLE_SOURCEMAPS=true npm run build)
+    sourcemap: process.env.VITE_ENABLE_SOURCEMAPS === 'true',
     rollupOptions: {
       output: {
         manualChunks: {
           'react-vendor': ['react', 'react-dom', 'react-router-dom'],
           'firebase-vendor': ['firebase/app', 'firebase/auth', 'firebase/firestore'],
           'qr-vendor': ['qrcode.react', '@zxing/browser', '@zxing/library']
-        }
+        },
+        // Sourcemaps externos (no inline) para mejor performance
+        sourcemapExcludeSources: true
       }
     }
   }

@@ -6,6 +6,7 @@ import { QRDisplay } from './QRDisplay';
 import { getQRHistory } from '../../services/firebase/firestoreHistory';
 import { formatDate } from '../../utils/dateHelpers';
 import { useNavigate } from 'react-router-dom';
+import html2canvas from 'html2canvas';
 
 export const QRHistory = () => {
     const [history, setHistory] = useState([]);
@@ -185,21 +186,34 @@ export const QRHistory = () => {
                         </div>
 
                         <div className="flex justify-center mb-6">
-                            <QRDisplay value={selectedQR.qrHash} size={300} />
+                            <QRDisplay value={selectedQR.qrHash} size={300} date={selectedQR.date} />
                         </div>
 
                         <div className="space-y-2">
                             <Button
                                 variant="primary"
                                 fullWidth
-                                onClick={() => {
-                                    const canvas = document.querySelector('canvas');
-                                    if (canvas) {
+                                onClick={async () => {
+                                    try {
+                                        const qrContainer = document.getElementById('daily-qr-container');
+                                        if (!qrContainer) {
+                                            console.error('QR container not found');
+                                            return;
+                                        }
+
+                                        const canvas = await html2canvas(qrContainer, {
+                                            backgroundColor: null,
+                                            scale: 2,
+                                            logging: false
+                                        });
+
                                         const url = canvas.toDataURL('image/png');
                                         const link = document.createElement('a');
                                         link.download = `qr-asistencia-${selectedQR.date}.png`;
                                         link.href = url;
                                         link.click();
+                                    } catch (error) {
+                                        console.error('Error downloading QR:', error);
                                     }
                                 }}
                             >

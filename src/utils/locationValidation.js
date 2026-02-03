@@ -16,6 +16,7 @@ export const isGeolocationSupported = () => {
 
 /**
  * Request location permission and get current position
+ * Estrategia de 2 intentos: network-based (rápido) → GPS satelital (preciso)
  * @returns {Promise<Object>} { success: boolean, position?: Object, error?: string }
  */
 export const getCurrentPosition = async () => {
@@ -28,14 +29,13 @@ export const getCurrentPosition = async () => {
             return;
         }
 
-        const options = {
-            enableHighAccuracy: GPS_CONFIG.ENABLE_HIGH_ACCURACY,
-            timeout: GPS_CONFIG.TIMEOUT,
-            maximumAge: GPS_CONFIG.MAXIMUM_AGE,
-        };
+        // INTENTO 1: Network-based (cell towers + WiFi) - Rápido (8s)
+        console.log('📍 GPS Attempt 1: Network-based location (fast)');
 
         navigator.geolocation.getCurrentPosition(
+            // SUCCESS: Intento 1 funcionó
             (position) => {
+                console.log('✅ GPS Attempt 1 succeeded (network-based)');
                 resolve({
                     success: true,
                     position: {
@@ -44,22 +44,60 @@ export const getCurrentPosition = async () => {
                         accuracy: position.coords.accuracy,
                         timestamp: position.timestamp,
                     },
+                    attempt: 1
                 });
             },
-            async (error) => {
-                // Use the new permission utilities for better error messages
-                const { getPermissionErrorDetails } = await import('./permissions');
-                const errorDetails = getPermissionErrorDetails(error, 'location');
+            // ERROR: Intento 1 falló, intentar con GPS satelital
+            async (error1) => {
+                console.log('⚠️ GPS Attempt 1 failed, trying satellite GPS...');
 
-                resolve({
-                    success: false,
-                    error: errorDetails.message,
-                    errorCode: errorDetails.code,
-                    isPermissionError: errorDetails.isPermissionError,
-                    os: errorDetails.os,
-                });
+                // INTENTO 2: GPS satelital - Preciso pero lento (30s)
+                console.log('📍 GPS Attempt 2: Satellite GPS (accurate)');
+
+                navigator.geolocation.getCurrentPosition(
+                    // SUCCESS: Intento 2 funcionó
+                    (position) => {
+                        console.log('✅ GPS Attempt 2 succeeded (satellite GPS)');
+                        resolve({
+                            success: true,
+                            position: {
+                                lat: position.coords.latitude,
+                                lng: position.coords.longitude,
+                                accuracy: position.coords.accuracy,
+                                timestamp: position.timestamp,
+                            },
+                            attempt: 2
+                        });
+                    },
+                    // ERROR: Ambos intentos fallaron
+                    async (error2) => {
+                        console.log('❌ GPS Attempt 2 failed (both attempts exhausted)');
+
+                        // Use the new permission utilities for better error messages
+                        const { getPermissionErrorDetails } = await import('./permissions');
+                        const errorDetails = getPermissionErrorDetails(error2, 'location');
+
+                        // Mensaje mejorado para timeout
+                        let errorMessage = errorDetails.message;
+                        if (error2.code === 3) { // TIMEOUT
+                            errorMessage = 'No se pudo obtener tu ubicación GPS a tiempo. ' +
+                                'Si estás en interiores, intenta acercarte a una ventana. ' +
+                                '(Intentos: network + GPS satelital)';
+                        }
+
+                        resolve({
+                            success: false,
+                            error: errorMessage,
+                            errorCode: errorDetails.code,
+                            isPermissionError: errorDetails.isPermissionError,
+                            os: errorDetails.os,
+                            attempts: 2
+                        });
+                    },
+                    GPS_CONFIG.SECOND_ATTEMPT
+                );
             },
-            options
+            GPS_CONFIG.FIRST_ATTEMPT
         );
     });
 };

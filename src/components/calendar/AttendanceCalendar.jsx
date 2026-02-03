@@ -24,8 +24,10 @@ import { DayDetailModal } from './DayDetailModal';
 /**
  * Componente de calendario mensual para mostrar asistencia
  * UX tipo Native App - Tema Light Integrado
+ * @param {boolean} adminMode - Si true, permite click en cualquier día (no solo los que tienen asistencia)
+ * @param {function} onDayClick - Callback cuando se hace click en un día (modo admin)
  */
-export const AttendanceCalendar = ({ userId, onMonthChange }) => {
+export const AttendanceCalendar = ({ userId, onMonthChange, adminMode = false, onDayClick }) => {
     const [currentMonth, setCurrentMonth] = useState(new Date());
     const [attendanceDates, setAttendanceDates] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -81,9 +83,17 @@ export const AttendanceCalendar = ({ userId, onMonthChange }) => {
 
     // Manejar click en un día
     const handleDayClick = (date) => {
-        if (hasAttendance(date)) {
-            setSelectedDate(date);
-            setIsModalOpen(true);
+        if (adminMode) {
+            // En modo admin, permitir click en cualquier día
+            if (onDayClick) {
+                onDayClick(date);
+            }
+        } else {
+            // En modo usuario, solo abrir modal si tiene asistencia
+            if (hasAttendance(date)) {
+                setSelectedDate(date);
+                setIsModalOpen(true);
+            }
         }
     };
 
@@ -258,7 +268,7 @@ export const AttendanceCalendar = ({ userId, onMonthChange }) => {
         <div className="relative pb-10">
             {renderMonthSelector()}
             {renderCalendarGrid()}
-            {renderFAB()}
+            {!adminMode && renderFAB()}
 
             {/* Modal de Detalle */}
             <DayDetailModal

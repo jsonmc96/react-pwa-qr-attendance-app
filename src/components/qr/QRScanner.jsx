@@ -124,9 +124,24 @@ export const QRScanner = ({ onSuccess }) => {
                     os: scanResult.os
                 });
             } else {
+                // Build detailed error message
+                let errorMessage = scanResult?.error || scanError || 'No se pudo iniciar el escáner.';
+
+                // Add technical details if available
+                if (scanResult?.originalError || scanResult?.errorCode) {
+                    const technicalDetails = [];
+                    if (scanResult.errorCode) technicalDetails.push(`Código: ${scanResult.errorCode}`);
+                    if (scanResult.originalError) technicalDetails.push(`Error: ${scanResult.originalError}`);
+                    if (scanResult.originalMessage) technicalDetails.push(`Detalle: ${scanResult.originalMessage}`);
+
+                    if (technicalDetails.length > 0) {
+                        errorMessage += `\n\n🔍 Información técnica:\n${technicalDetails.join('\n')}`;
+                    }
+                }
+
                 setResult({
                     success: false,
-                    message: scanResult?.error || scanError || 'No se pudo iniciar el escáner. Verifica los permisos de cámara.'
+                    message: errorMessage
                 });
             }
             setIsProcessing(false);
@@ -192,6 +207,7 @@ export const QRScanner = ({ onSuccess }) => {
                     className="w-full h-full object-cover"
                     autoPlay
                     playsInline
+                    muted
                 />
 
                 {/* Overlay con instrucciones */}

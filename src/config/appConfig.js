@@ -30,11 +30,22 @@ export const DEFAULT_GEOFENCE = {
     radiusMeters: 100,    // Tolerance radius in meters
 };
 
-// GPS Configuration
+// GPS Configuration - Estrategia de 2 intentos para mejor performance indoor
 export const GPS_CONFIG = {
-    TIMEOUT: 10000,           // 10 seconds timeout for GPS request
-    MAXIMUM_AGE: 30000,       // Accept cached position up to 30 seconds old
-    ENABLE_HIGH_ACCURACY: true, // Request high accuracy GPS
+    // Primer intento: Network-based (cell towers + WiFi) - Rápido
+    FIRST_ATTEMPT: {
+        timeout: 8000,              // 8s para intento rápido
+        enableHighAccuracy: false,  // Usar cell towers/WiFi (rápido)
+        maximumAge: 30000           // Aceptar cache de hasta 30s
+    },
+    // Segundo intento: GPS satelital - Preciso pero lento
+    SECOND_ATTEMPT: {
+        timeout: 30000,             // 30s para GPS satelital (iOS indoor)
+        enableHighAccuracy: true,   // Usar GPS satelital (preciso)
+        maximumAge: 0               // No usar cache (posición fresca)
+    },
+    // Radio de tolerancia aumentado para interiores
+    TOLERANCE_METERS: 150  // 150m (antes 100m) para compensar error GPS indoor
 };
 
 // Validation Messages
@@ -57,9 +68,10 @@ export const VALIDATION_MESSAGES = {
 };
 
 // Firestore Collection Names
+// Firestore Collection Names
 export const COLLECTIONS = {
     USERS: 'users',
-    ATTENDANCE_RECORDS: 'attendanceRecords',
+    ATTENDANCE_RECORDS: 'attendance', // Unified to match firestore.rules
     SYSTEM_CONFIG: 'systemConfig',
 };
 

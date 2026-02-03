@@ -96,9 +96,12 @@ export const LoginForm = () => {
             </form>
 
             {/* Footer info */}
-            <div className="mt-8 text-center">
+            <div className="mt-8 text-center space-y-2">
                 <p className="text-xs text-gray-500">
                     Al iniciar sesión, aceptas nuestros términos y condiciones
+                </p>
+                <p className="text-xs text-gray-400 font-mono">
+                    v{import.meta.env.VITE_APP_VERSION || '1.0.0'}
                 </p>
             </div>
         </div>

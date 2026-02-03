@@ -17,28 +17,50 @@ export const getEcuadorTime = () => {
 };
 
 /**
- * Check if current time is within allowed attendance window (07:00-07:31 AM Ecuador)
- * @returns {Object} { isValid: boolean, message: string, ecuadorTime: Date }
+ * Check if current time is within allowed attendance window
+ * Reads configuration dynamically from Firestore
+ * @returns {Promise<Object>} { isValid: boolean, message: string, ecuadorTime: Date, config: Object }
  */
-export const isWithinAllowedTime = () => {
+export const isWithinAllowedTime = async () => {
     const ecuadorTime = getEcuadorTime();
     const currentHour = ecuadorTime.getHours();
     const currentMinute = ecuadorTime.getMinutes();
+    const currentDay = ecuadorTime.getDay(); // 0=Sunday, 6=Saturday
 
-    const { START_HOUR, START_MINUTE, END_HOUR, END_MINUTE } = ATTENDANCE_WINDOW;
+    // Importar dinámicamente para evitar dependencia circular
+    const { getAttendanceWindowConfig } = await import('../services/firebase/systemConfigService');
+
+    // Obtener configuración desde Firestore (con cache)
+    const config = await getAttendanceWindowConfig();
+
+    const { startHour, startMinute, endHour, endMinute, toleranceMinutes = 0, activeDays = [0, 1, 2, 3, 4, 5, 6] } = config;
+
+    // Verificar si hoy es un día activo
+    if (!activeDays.includes(currentDay)) {
+        return {
+            isValid: false,
+            message: 'Hoy no es un día de asistencia configurado.',
+            ecuadorTime,
+            config,
+        };
+    }
 
     // Convert to minutes for easier comparison
     const currentTimeInMinutes = currentHour * 60 + currentMinute;
-    const startTimeInMinutes = START_HOUR * 60 + START_MINUTE;
-    const endTimeInMinutes = END_HOUR * 60 + END_MINUTE;
+    const startTimeInMinutes = startHour * 60 + startMinute;
+    const endTimeInMinutes = endHour * 60 + endMinute + toleranceMinutes;
 
     const isValid = currentTimeInMinutes >= startTimeInMinutes && currentTimeInMinutes <= endTimeInMinutes;
 
     let message;
     if (currentTimeInMinutes < startTimeInMinutes) {
-        message = VALIDATION_MESSAGES.TIME_WINDOW.BEFORE;
+        const startTime = formatTime(startHour, startMinute);
+        const endTime = formatTime(endHour, endMinute);
+        message = `La ventana de asistencia aún no ha comenzado. Disponible de ${startTime} a ${endTime}.`;
     } else if (currentTimeInMinutes > endTimeInMinutes) {
-        message = VALIDATION_MESSAGES.TIME_WINDOW.AFTER;
+        const startTime = formatTime(startHour, startMinute);
+        const endTime = formatTime(endHour, endMinute);
+        message = `La ventana de asistencia ha finalizado. Disponible de ${startTime} a ${endTime}.`;
     } else {
         message = VALIDATION_MESSAGES.TIME_WINDOW.ACTIVE;
     }
@@ -47,7 +69,19 @@ export const isWithinAllowedTime = () => {
         isValid,
         message,
         ecuadorTime,
+        config,
     };
+};
+
+/**
+ * Helper function to format time
+ * @private
+ */
+const formatTime = (hour, minute) => {
+    const period = hour >= 12 ? 'PM' : 'AM';
+    const displayHour = hour > 12 ? hour - 12 : hour === 0 ? 12 : hour;
+    const displayMinute = minute.toString().padStart(2, '0');
+    return `${displayHour}:${displayMinute} ${period}`;
 };
 
 /**
@@ -62,18 +96,22 @@ export const getFormattedEcuadorTime = (date = new Date(), formatStr = 'HH:mm:ss
 
 /**
  * Calculate time until attendance window starts
- * @returns {Object} { milliseconds: number, minutes: number, isWindowOpen: boolean }
+ * @returns {Promise<Object>} { milliseconds: number, minutes: number, isWindowOpen: boolean }
  */
-export const getTimeUntilWindow = () => {
+export const getTimeUntilWindow = async () => {
     const ecuadorTime = getEcuadorTime();
     const currentHour = ecuadorTime.getHours();
     const currentMinute = ecuadorTime.getMinutes();
 
-    const { START_HOUR, START_MINUTE, END_HOUR, END_MINUTE } = ATTENDANCE_WINDOW;
+    // Importar dinámicamente para evitar dependencia circular
+    const { getAttendanceWindowConfig } = await import('../services/firebase/systemConfigService');
+    const config = await getAttendanceWindowConfig();
+
+    const { startHour, startMinute, endHour, endMinute, toleranceMinutes = 0 } = config;
 
     const currentTimeInMinutes = currentHour * 60 + currentMinute;
-    const startTimeInMinutes = START_HOUR * 60 + START_MINUTE;
-    const endTimeInMinutes = END_HOUR * 60 + END_MINUTE;
+    const startTimeInMinutes = startHour * 60 + startMinute;
+    const endTimeInMinutes = endHour * 60 + endMinute + toleranceMinutes;
 
     // Window is currently open
     if (currentTimeInMinutes >= startTimeInMinutes && currentTimeInMinutes <= endTimeInMinutes) {
@@ -112,17 +150,14 @@ export const getTimeUntilWindow = () => {
 
 /**
  * Get attendance window display string
- * @returns {string} "07:00 - 07:31 AM"
+ * @returns {Promise<string>} "07:00 - 09:30 AM"
  */
-export const getAttendanceWindowDisplay = () => {
-    const { START_HOUR, START_MINUTE, END_HOUR, END_MINUTE } = ATTENDANCE_WINDOW;
+export const getAttendanceWindowDisplay = async () => {
+    // Importar dinámicamente para evitar dependencia circular
+    const { getAttendanceWindowConfig } = await import('../services/firebase/systemConfigService');
+    const config = await getAttendanceWindowConfig();
 
-    const formatTime = (hour, minute) => {
-        const period = hour >= 12 ? 'PM' : 'AM';
-        const displayHour = hour > 12 ? hour - 12 : hour === 0 ? 12 : hour;
-        const displayMinute = minute.toString().padStart(2, '0');
-        return `${displayHour}:${displayMinute} ${period}`;
-    };
+    const { startHour, startMinute, endHour, endMinute } = config;
 
-    return `${formatTime(START_HOUR, START_MINUTE)} - ${formatTime(END_HOUR, END_MINUTE)}`;
+    return `${formatTime(startHour, startMinute)} - ${formatTime(endHour, endMinute)}`;
 };

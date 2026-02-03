@@ -7,10 +7,12 @@ import { GenerateQR } from './pages/admin/GenerateQR';
 import { AttendanceReport } from './pages/admin/AttendanceReport';
 import { QRHistoryPage } from './pages/admin/QRHistoryPage';
 import { AdminSettings } from './pages/admin/AdminSettings';
+import { AdminManualAttendance } from './pages/admin/AdminManualAttendance';
 import { UserDashboard } from './pages/user/UserDashboard';
 import { ScanQR } from './pages/user/ScanQR';
 import { MyAttendance } from './pages/user/MyAttendance';
 import { RankingPage } from './pages/shared/RankingPage';
+import { UserProfile } from './pages/shared/UserProfile';
 import { ROUTES, ROLES } from './utils/constants';
 import { useAuth } from './context/AuthContext';
 import { MainLayout } from './components/layout/MainLayout';
@@ -77,6 +79,14 @@ export const AppRouter = () => {
                         }
                     />
                     <Route
+                        path="/admin/manual-attendance"
+                        element={
+                            <RoleGuard allowedRole={ROLES.ADMIN}>
+                                <AdminManualAttendance />
+                            </RoleGuard>
+                        }
+                    />
+                    <Route
                         path={ROUTES.ADMIN_REPORTS}
                         element={
                             <RoleGuard allowedRole={ROLES.ADMIN}>
@@ -100,6 +110,14 @@ export const AppRouter = () => {
                                     <RankingPage />
                                 </RoleGuard>
                             </div>
+                        }
+                    />
+                    <Route
+                        path="/profile"
+                        element={
+                            <RoleGuard allowedRole={[ROLES.ADMIN, ROLES.USER]}>
+                                <UserProfile />
+                            </RoleGuard>
                         }
                     />
 

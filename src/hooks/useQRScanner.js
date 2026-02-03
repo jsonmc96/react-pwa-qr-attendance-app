@@ -52,7 +52,9 @@ export const useQRScanner = () => {
         try {
             setError(null);
 
-            // ✅ VALIDACIÓN 1: Verificar ventana horaria
+            // ✅ VALIDACIÓN 1: Verificar ventana horaria PRIMERO
+            // Es una validación "gratis" (no requiere permisos del usuario)
+            // No tiene sentido pedir permisos si ni siquiera es la hora correcta
             const { isWithinAllowedTime } = await import('../utils/timeValidation');
             const timeValidation = isWithinAllowedTime();
 
@@ -60,12 +62,17 @@ export const useQRScanner = () => {
                 const errorMsg = timeValidation.message;
                 setError(errorMsg);
                 if (onError) onError(errorMsg);
-                return false;
+                return {
+                    success: false,
+                    error: errorMsg,
+                    errorCode: 'TIME_VALIDATION_FAILED',
+                    isPermissionError: false
+                };
             }
 
-            // ✅ VALIDACIÓN 2: Verificar tipo de empleado (si se proporciona userData)
+            // ✅ VALIDACIÓN 2: Verificar tipo de empleado y ubicación GPS (si aplica)
+            // Validar GPS ANTES de pedir cámara (para empleados presenciales)
             if (userData && userData.employeeType === 'onsite') {
-                // Para empleados presenciales, validar ubicación GPS
                 const { validateOnsiteLocation } = await import('../utils/locationValidation');
                 const { getSystemConfig } = await import('../services/backend/providers/firebase/admin');
 
@@ -73,26 +80,34 @@ export const useQRScanner = () => {
                 const systemConfig = await getSystemConfig();
                 const geofence = systemConfig.churchLocation;
 
-                // Validar ubicación
+                // Validar ubicación (esto pedirá permiso de GPS si no lo tiene)
                 const locationValidation = await validateOnsiteLocation(geofence);
 
                 if (!locationValidation.isValid) {
                     const errorMsg = locationValidation.error || locationValidation.message;
                     setError(errorMsg);
                     if (onError) onError(errorMsg);
-                    return false;
+                    return {
+                        success: false,
+                        error: errorMsg,
+                        errorCode: 'GPS_VALIDATION_FAILED',
+                        isPermissionError: false
+                    };
                 }
 
                 console.log('✅ Location validated:', locationValidation.distance, 'meters from church');
             }
 
-            // Solicitar permiso si no se ha solicitado
-            if (hasPermission === null) {
+            // ✅ VALIDACIÓN 3: Solicitar permiso de cámara AL FINAL
+            // Solo pedimos cámara si pasó todas las validaciones anteriores
+            // Verificar si NO tenemos permiso (null o false)
+            if (hasPermission !== true) {
                 const permissionResult = await requestPermission();
                 if (!permissionResult.success) {
                     return permissionResult; // Return detailed error info
                 }
             }
+
 
             // Marcar como scanning primero
             setIsScanning(true);
@@ -122,18 +137,25 @@ export const useQRScanner = () => {
             codeReaderRef.current = codeReader;
 
             // ✨ COMPATIBILIDAD MÓVIL: Obtener stream manualmente
+            // iOS requiere: ideal (no strict), muted, playsInline
             const constraints = {
                 video: {
-                    facingMode: 'environment',
+                    facingMode: { ideal: 'environment' },  // ideal (no strict) para iOS
                     width: { ideal: 1280, max: 1920 },
                     height: { ideal: 720, max: 1080 }
-                }
+                },
+                audio: false  // Explícitamente false para evitar problemas
             };
 
             console.log('📹 Requesting camera stream...');
             const stream = await navigator.mediaDevices.getUserMedia(constraints);
             streamRef.current = stream;
             videoElement.srcObject = stream;
+
+            // ✅ iOS Safari compatibility: muted + playsInline para autoplay
+            videoElement.muted = true;
+            videoElement.playsInline = true;
+            videoElement.setAttribute('playsinline', '');  // Legacy iOS Safari
 
             // Asegurar que el video esté completamente listo
             await new Promise((resolve, reject) => {

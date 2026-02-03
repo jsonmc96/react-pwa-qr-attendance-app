@@ -121,6 +121,9 @@ export const getPermissionErrorDetails = (error, type = 'camera') => {
                 code: 'PERMISSION_DENIED',
                 isPermissionError: true,
                 os,
+                // Include original error for debugging
+                originalError: error.name,
+                originalMessage: error.message,
             };
         }
 
@@ -129,6 +132,8 @@ export const getPermissionErrorDetails = (error, type = 'camera') => {
                 message: 'No se encontró ninguna cámara en este dispositivo.',
                 code: 'NO_CAMERA',
                 isPermissionError: false,
+                originalError: error.name,
+                originalMessage: error.message,
             };
         }
 
@@ -137,6 +142,8 @@ export const getPermissionErrorDetails = (error, type = 'camera') => {
                 message: 'La cámara está siendo usada por otra aplicación.',
                 code: 'CAMERA_IN_USE',
                 isPermissionError: false,
+                originalError: error.name,
+                originalMessage: error.message,
             };
         }
     }
@@ -151,6 +158,8 @@ export const getPermissionErrorDetails = (error, type = 'camera') => {
                 code: 'PERMISSION_DENIED',
                 isPermissionError: true,
                 os,
+                originalError: `GeolocationPositionError(${error.code})`,
+                originalMessage: error.message,
             };
         }
 
@@ -159,6 +168,8 @@ export const getPermissionErrorDetails = (error, type = 'camera') => {
                 message: 'No se pudo obtener tu ubicación. Verifica que el GPS esté activado.',
                 code: 'POSITION_UNAVAILABLE',
                 isPermissionError: false,
+                originalError: `GeolocationPositionError(${error.code})`,
+                originalMessage: error.message,
             };
         }
 
@@ -167,13 +178,26 @@ export const getPermissionErrorDetails = (error, type = 'camera') => {
                 message: 'Se agotó el tiempo de espera. Intenta nuevamente.',
                 code: 'TIMEOUT',
                 isPermissionError: false,
+                originalError: `GeolocationPositionError(${error.code})`,
+                originalMessage: error.message,
             };
         }
     }
 
+    // Unknown error - include all available details
     return {
-        message: 'Error desconocido. Por favor, intenta nuevamente.',
+        message: `Error: ${error.name || 'Desconocido'} - ${error.message || 'Sin detalles'}`,
         code: 'UNKNOWN',
         isPermissionError: false,
+        originalError: error.name || 'Unknown',
+        originalMessage: error.message || 'No message provided',
+        // Include full error object for debugging
+        fullError: {
+            name: error.name,
+            message: error.message,
+            code: error.code,
+            stack: error.stack,
+        },
     };
 };
+

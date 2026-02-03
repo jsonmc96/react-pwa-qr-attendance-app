@@ -89,7 +89,8 @@ export const registerAttendance = async (userId, date, qrHash, validationData = 
             userId,
             date,
             timestamp: Timestamp.now(),
-            qrHash
+            qrHash,
+            registrationType: 'auto', // Registro automático (usuario escanea QR)
         };
 
         // Agregar datos de validación si existen

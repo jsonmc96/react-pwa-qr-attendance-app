@@ -1,6 +1,7 @@
 import { Header } from '../../components/layout/Header';
 import { EmployeeTypeManager } from '../../components/admin/EmployeeTypeManager';
 import { SystemConfigSection } from '../../components/admin/SystemConfigSection';
+import { AttendanceWindowConfig } from '../../components/admin/AttendanceWindowConfig';
 
 export const AdminSettings = () => {
     return (
@@ -8,6 +9,9 @@ export const AdminSettings = () => {
             <Header title="Configuración del Sistema" />
 
             <main className="max-w-4xl mx-auto px-4 py-6 space-y-6">
+                {/* Attendance Window Configuration */}
+                <AttendanceWindowConfig />
+
                 {/* System Configuration */}
                 <SystemConfigSection />
 
