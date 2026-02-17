@@ -10,7 +10,9 @@ export const PersonalQRModal = ({ onClose }) => {
     useEffect(() => {
         // Generar QR con el UID del usuario
         if (user) {
-            setUserQR(user.uid);
+            const timestamp = Date.now();
+            const qrData = `USER_QR:${user.uid}:${timestamp}`;
+            setUserQR(qrData);
         }
     }, [user]);
 

@@ -56,7 +56,7 @@ export const useQRScanner = () => {
             // Es una validación "gratis" (no requiere permisos del usuario)
             // No tiene sentido pedir permisos si ni siquiera es la hora correcta
             const { isWithinAllowedTime } = await import('../utils/timeValidation');
-            const timeValidation = isWithinAllowedTime();
+            const timeValidation = await isWithinAllowedTime();
 
             if (!timeValidation.isValid) {
                 const errorMsg = timeValidation.message;
