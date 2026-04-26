@@ -13,7 +13,8 @@ export const ROUTES = {
     USER_SCAN_QR: '/user/scan-qr',
     USER_SCAN_QR: '/user/scan-qr',
     USER_ATTENDANCE: '/user/attendance',
-    RANKING: '/ranking'
+    RANKING: '/ranking',
+    PARKING: '/parking'
 };
 
 export const STORAGE_KEYS = {

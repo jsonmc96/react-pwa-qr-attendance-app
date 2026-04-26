@@ -1,11 +1,11 @@
-# PWA Control de Asistencia con QR
+# PWA Control de Asistencia con QR & Parqueadero
 
-Progressive Web App para control de asistencia empresarial usando códigos QR dinámicos.
+Progressive Web App para control de asistencia empresarial y gestión remota de parqueadero.
 
 ![PWA](https://img.shields.io/badge/PWA-Ready-success)
 ![Firebase](https://img.shields.io/badge/Firebase-Hosting-orange)
 ![React](https://img.shields.io/badge/React-18-blue)
-![Vite](https://img.shields.io/badge/Vite-5-purple)
+![Vite](https://img.shields.io/badge/Vite-4-purple)
 
 ## 🚀 Características
 
@@ -202,101 +202,22 @@ https://tu-proyecto.web.app
 ```
 src/
 ├── components/       # Componentes reutilizables
-│   ├── auth/        # LoginForm, ProtectedRoute, RoleGuard
-│   ├── calendar/    # MonthCalendar
-│   ├── common/      # Button, Input, Card, Loading
-│   ├── layout/      # Header, BottomNav
-│   └── qr/          # QRGenerator, QRScanner, QRDisplay
-├── context/         # AuthContext, OfflineContext, ThemeContext
-├── hooks/           # useAuth, useQRScanner, useAttendance, etc.
-├── pages/           # Páginas/Vistas
-│   ├── admin/       # AdminDashboard, GenerateQR, AttendanceReport
-│   └── user/        # UserDashboard, ScanQR, MyAttendance
-├── services/        # Servicios (Firebase, QR, Asistencia)
+├── context/         # AuthContext, etc.
+├── hooks/           # useAuth, useAttendance, etc.
+├── pages/           # Admin/User/Shared Pages
+├── services/        # APIs y Firebase
 ├── styles/          # Estilos globales
-└── utils/           # Utilidades y helpers
+└── utils/           # Utilidades y constantes
 ```
-
-## 📊 Flujos Principales
-
-### Admin
-1. Login → Dashboard Admin
-2. Generar QR del día (SHA-256)
-3. Compartir/descargar QR
-4. Ver reportes de asistencia
-
-### Usuario
-1. Login → Dashboard Usuario
-2. Escanear QR con cámara
-3. Registro automático de asistencia
-4. Ver calendario mensual con estadísticas
-
-## 🌐 Modo Offline
-
-La app funciona completamente offline gracias a:
-
-- **Service Worker** con Workbox
-- **Cache de app shell** (HTML, CSS, JS)
-- **IndexedDB** para datos pendientes
-- **Sincronización automática** al recuperar conexión
-
-**Estrategias de cache**:
-- Firebase Firestore: Network First (10s timeout)
-- Firebase Auth: Network First
-- Google Fonts: Cache First (1 año)
-- Imágenes: Cache First (30 días)
-
-## 🔐 Seguridad
-
-- ✅ Firestore Security Rules (validación server-side)
-- ✅ QR con hash SHA-256 (fecha + secreto)
-- ✅ Validación de expiración de QR
-- ✅ Prevención de registros duplicados
-- ✅ HTTPS obligatorio (Firebase Hosting)
-- ✅ Roles protegidos en cliente y servidor
-
-## 📝 Scripts Disponibles
-
-```bash
-npm run dev              # Servidor de desarrollo
-npm run build            # Build de producción
-npm run preview          # Preview del build
-npm run deploy           # Build + Deploy a Firebase
-npm run deploy:preview   # Deploy a canal preview
-npm run pwa:test         # Build + Preview (testing PWA)
-npm run lighthouse       # Audit con Lighthouse
-```
-
-## 🧪 Testing PWA
-
-### Lighthouse Audit
-
-```bash
-# En Chrome DevTools
-Lighthouse → Generate Report → PWA score debe ser 100
-```
-
-### Verificar Offline
-
-1. Chrome DevTools → Network → Offline
-2. Reload página
-3. ✅ App debe cargar completamente
-
-### Verificar Service Worker
-
-1. Chrome DevTools → Application → Service Workers
-2. ✅ Estado: "activated and is running"
-
-### Verificar Cache
-
-1. Chrome DevTools → Application → Cache Storage
-2. ✅ Múltiples caches creados (workbox, firestore, fonts, etc.)
 
 ## 📚 Documentación
 
-- **[FIREBASE_AUTH_GUIDE.md](./FIREBASE_AUTH_GUIDE.md)** - Guía completa de autenticación
-- **[PWA_DEPLOYMENT_GUIDE.md](./PWA_DEPLOYMENT_GUIDE.md)** - Guía completa de PWA y deploy
-- **[DEPLOY_QUICKSTART.md](./DEPLOY_QUICKSTART.md)** - Guía rápida de deploy
+Toda la documentación técnica se encuentra en la carpeta [docs/](./docs):
+- [Arquitectura del Proyecto](./docs/ARCHITECTURE.md)
+- [Contexto para IA](./docs/AI_CONTEXT.md)
+- [Funcionalidades](./docs/FEATURES.md)
+- [Guía de Firebase Auth](./docs/FIREBASE_AUTH_GUIDE.md)
+- [Guía de Despliegue PWA](./docs/PWA_DEPLOYMENT_GUIDE.md)
 
 ## 🐛 Troubleshooting
 

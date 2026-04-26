@@ -13,6 +13,7 @@ import { ScanQR } from './pages/user/ScanQR';
 import { MyAttendance } from './pages/user/MyAttendance';
 import { RankingPage } from './pages/shared/RankingPage';
 import { UserProfile } from './pages/shared/UserProfile';
+import { ParkingGatePage } from './pages/shared/ParkingGatePage';
 import { ROUTES, ROLES } from './utils/constants';
 import { useAuth } from './context/AuthContext';
 import { MainLayout } from './components/layout/MainLayout';
@@ -117,6 +118,14 @@ export const AppRouter = () => {
                         element={
                             <RoleGuard allowedRole={[ROLES.ADMIN, ROLES.USER]}>
                                 <UserProfile />
+                            </RoleGuard>
+                        }
+                    />
+                    <Route
+                        path={ROUTES.PARKING}
+                        element={
+                            <RoleGuard allowedRole={[ROLES.ADMIN, ROLES.USER]}>
+                                <ParkingGatePage />
                             </RoleGuard>
                         }
                     />

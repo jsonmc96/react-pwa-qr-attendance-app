@@ -11,6 +11,7 @@ export const BottomNav = () => {
         { to: ROUTES.ADMIN_DASHBOARD, icon: '🏠', label: 'Inicio' },
         { to: ROUTES.ADMIN_GENERATE_QR, icon: '📱', label: 'Generar QR' },
         { to: ROUTES.USER_SCAN_QR, icon: '📷', label: 'Escanear' },
+        { to: ROUTES.PARKING, icon: '🚘', label: 'Parking' },
         { to: ROUTES.RANKING, icon: '🏆', label: 'Ranking' },
         { to: ROUTES.USER_ATTENDANCE, icon: '📅', label: 'Asistencia' }
     ];
@@ -18,6 +19,7 @@ export const BottomNav = () => {
     const userLinks = [
         { to: ROUTES.USER_DASHBOARD, icon: '🏠', label: 'Inicio' },
         { to: ROUTES.USER_SCAN_QR, icon: '📷', label: 'Escanear' },
+        { to: ROUTES.PARKING, icon: '🚘', label: 'Parking' },
         { to: ROUTES.RANKING, icon: '🏆', label: 'Ranking' },
         { to: ROUTES.USER_ATTENDANCE, icon: '📅', label: 'Asistencia' }
     ];

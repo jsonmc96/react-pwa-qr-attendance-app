@@ -109,6 +109,21 @@ export const AdminDashboard = () => {
                         </div>
                     </Card>
 
+                    <Card hover className="cursor-pointer" onClick={() => navigate(ROUTES.PARKING)}>
+                        <div className="flex items-center gap-4">
+                            <div className="w-14 h-14 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-2xl flex items-center justify-center shadow-md shadow-indigo-600/20">
+                                <span className="text-3xl">🚘</span>
+                            </div>
+                            <div className="flex-1">
+                                <h3 className="font-bold text-gray-900 text-lg">Parqueadero</h3>
+                                <p className="text-sm text-gray-600">Control de portón y cámaras</p>
+                            </div>
+                            <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                            </svg>
+                        </div>
+                    </Card>
+
                     <Card hover className="cursor-pointer" onClick={() => navigate('/profile')}>
                         <div className="flex items-center gap-4">
                             <div className="w-14 h-14 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-2xl flex items-center justify-center shadow-md shadow-indigo-600/20">
