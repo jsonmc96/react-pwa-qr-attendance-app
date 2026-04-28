@@ -1,7 +1,7 @@
 {
   "name": "react-pwa-qr-attendance-app",
   "private": true,
-  "version": "2.5.3",
+  "version": "2.7.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -32,6 +32,7 @@
     "react-dom": "^18.2.0",
     "react-router-dom": "^6.20.0",
     "react-toastify": "^11.0.5",
+    "signalr-no-jquery": "^0.2.1",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
