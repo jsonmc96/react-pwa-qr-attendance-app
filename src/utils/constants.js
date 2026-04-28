@@ -58,5 +58,6 @@ export const MESSAGES = {
 export const FIRESTORE_COLLECTIONS = {
     USERS: 'users',
     DAILY_QR: 'dailyQR',
-    ATTENDANCE: 'attendance'
+    ATTENDANCE: 'attendance',
+    PARKING_HISTORY: 'parkingGateHistory'
 };

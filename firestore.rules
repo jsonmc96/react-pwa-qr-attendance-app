@@ -188,6 +188,20 @@ service cloud.firestore {
     // }
     // ========================================
     
+    // ========================================
+    // COLLECTION: parkingGate (Control & History)
+    // ========================================
+    
+    match /system_status/parking_gate {
+      // Sincronización en tiempo real para todos los usuarios autenticados
+      allow read, write: if isAuthenticated();
+    }
+    
+    match /parkingGateHistory/{eventId} {
+      // Todos pueden ver el historial y registrar sus propios eventos
+      allow read, create: if isAuthenticated();
+    }
+
     match /systemConfig/{configId} {
       // Lectura: Cualquier usuario autenticado puede leer configuración
       allow read: if isAuthenticated();

@@ -1,10 +1,10 @@
 export const parkingGateService = {
     /**
-     * Envía un comando al portón del parqueadero.
-     * @param {'abrir' | 'cerrar'} accion 
-     * @returns {Promise<{success: boolean, message: string}>}
+     * Envía un pulso al portón del parqueadero.
+     * @param {number} timeMs Tiempo en milisegundos para el pulso.
+     * @returns {Promise<{code: string, message: string, payload: any}>}
      */
-    sendGateCommand: async (accion) => {
+    sendGatePulse: async (timeMs = 300) => {
         const apiUrl = import.meta.env.VITE_PARKING_GATE_API_URL;
         
         if (!apiUrl) {
@@ -12,43 +12,21 @@ export const parkingGateService = {
         }
 
         try {
-            const response = await fetch(apiUrl, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ accion })
+            // El usuario indicó el endpoint: /api/parking/gate/pulse?time_ms=300
+            // Usamos POST como se solicitó
+            const response = await fetch(`${apiUrl}/api/parking/gate/pulse?time_ms=${timeMs}`, {
+                method: 'POST'
             });
 
-            if (!response.ok) {
-                // Intenta obtener el mensaje de error de la API
-                let errorMessage = 'Error al enviar el comando.';
-                try {
-                    const errorData = await response.json();
-                    errorMessage = errorData.message || errorMessage;
-                } catch (e) {
-                    // Si no es JSON, usa el status text
-                    errorMessage = response.statusText || errorMessage;
-                }
-                throw new Error(errorMessage);
+            if (!response.ok && response.status !== 429) {
+                throw new Error('Error al conectar con el servidor de integración.');
             }
 
-            // Suponemos que la API retorna algo como { success: true, message: "..." }
-            // O simplemente status 200/201.
-            let data = {};
-            try {
-                data = await response.json();
-            } catch (e) {
-                // Ignore if not JSON
-            }
-
-            return {
-                success: true,
-                message: data.message || `Comando '${accion}' enviado correctamente.`
-            };
+            const result = await response.json();
+            return result;
         } catch (error) {
-            console.error('Error in sendGateCommand:', error);
-            throw new Error(error.message || 'Error de red al intentar conectar con el portón.');
+            console.error('Error in sendGatePulse:', error);
+            throw error;
         }
     }
 };

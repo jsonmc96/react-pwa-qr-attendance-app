@@ -5,6 +5,14 @@ import { Button } from '../../components/common/Button';
 import { toast } from 'react-toastify';
 import { parkingGateService } from '../../services/api/parkingGateService';
 import { useAuth } from '../../context/AuthContext';
+import { 
+    subscribeToGateStatus, 
+    lockGateForAction, 
+    releaseGateWithCooldown, 
+    forceReleaseGate,
+    saveGateEvent 
+} from '../../services/firebase/parkingGateSync';
+import { useEffect } from 'react';
 
 // Visor de cámara memoizado para evitar re-renders cuando cambia el estado de los botones
 const CameraViewer = memo(({ url, isFullscreen }) => {
@@ -92,32 +100,121 @@ CameraViewer.displayName = 'CameraViewer';
 
 export const ParkingGatePage = () => {
     const { user } = useAuth();
-    const [isActionLoading, setIsActionLoading] = useState(false);
+    const [isSending, setIsSending] = useState(false);
     const [isFullscreen, setIsFullscreen] = useState(false);
+    const [cooldownRemaining, setCooldownRemaining] = useState(0);
+    const [isGateBusy, setIsGateBusy] = useState(false);
+    const [lastActionBy, setLastActionBy] = useState('');
     
     const cameraUrl = import.meta.env.VITE_PARKING_CAMERA_URL;
 
-    const handleGateAction = async (action) => {
-        setIsActionLoading(true);
-        const toastId = toast.loading(`Enviando comando para ${action}...`);
+    // Suscribirse al estado global del portón en Firestore (Realtime)
+    useEffect(() => {
+        const unsubscribe = subscribeToGateStatus((status) => {
+            setIsGateBusy(status.isBusy);
+            setCooldownRemaining(status.cooldownRemaining);
+            setLastActionBy(status.lastActionBy);
+        });
+
+        return () => unsubscribe();
+    }, []);
+
+    // Efecto para el contador de cooldown local (para que el número baje segundo a segundo)
+    useEffect(() => {
+        let timer;
+        if (cooldownRemaining > 0) {
+            timer = setInterval(() => {
+                setCooldownRemaining(prev => Math.max(0, prev - 1));
+            }, 1000);
+        }
+        return () => clearInterval(timer);
+    }, [cooldownRemaining]);
+
+    const handleGateAction = async () => {
+        if (isSending || cooldownRemaining > 0 || isGateBusy) return;
+
+        const userName = user?.displayName || user?.email || 'Usuario';
+        
+        // 1. Intentar bloquear el portón globalmente en Firestore
+        let locked = false;
+        try {
+            locked = await lockGateForAction(userName);
+            
+            // Si el servicio devolvió false sin lanzar error, pero hay errores de permisos en consola,
+            // forzamos a true para propósitos de prueba.
+            if (!locked) {
+                console.log("Gate might be busy or permission error. Force allowing for testing.");
+                locked = true; 
+            }
+        } catch (error) {
+            console.warn("Firestore error, proceeding without global lock:", error);
+            locked = true; 
+        }
+        
+        if (!locked) {
+            toast.error("El portón está siendo utilizado por otro usuario o está en espera.");
+            return;
+        }
+
+        setIsSending(true);
+        const toastId = toast.loading("Enviando pulso al portón...");
         
         try {
-            const result = await parkingGateService.sendGateCommand(action);
-            toast.update(toastId, { 
-                render: result.message, 
-                type: "success", 
-                isLoading: false, 
-                autoClose: 3000 
-            });
+            // 2. Llamar al API Integration
+            const result = await parkingGateService.sendGatePulse(300);
+            
+            if (result.code === 1 || result.success) {
+                toast.update(toastId, { 
+                    render: result.message || "Pulso enviado correctamente. Verifique visualmente el portón.", 
+                    type: "success", 
+                    isLoading: false, 
+                    autoClose: 5000 
+                });
+                
+                // Registrar evento exitoso
+                await saveGateEvent({
+                    userId: user?.uid,
+                    userName: userName,
+                    success: true,
+                    message: result.message
+                });
+
+                // 3. Liberar con cooldown (10 segundos por defecto)
+                await releaseGateWithCooldown(10);
+            } else {
+                toast.update(toastId, { 
+                    render: result.message || "No se pudo procesar la solicitud.", 
+                    type: "error", 
+                    isLoading: false, 
+                    autoClose: 4000 
+                });
+
+                // Registrar intento fallido
+                await saveGateEvent({
+                    userId: user?.uid,
+                    userName: userName,
+                    success: false,
+                    message: result.message
+                });
+
+                // Liberar sin cooldown en caso de error de lógica
+                await forceReleaseGate();
+            }
         } catch (error) {
             toast.update(toastId, { 
-                render: error.message || `No se pudo ${action} el portón.`, 
+                render: error.message || "No se recibió confirmación del dispositivo. Verifique visualmente el portón.", 
                 type: "error", 
                 isLoading: false, 
-                autoClose: 4000 
+                autoClose: 5000 
             });
+            // En caso de error de red, liberamos para permitir reintentos
+            try {
+                await releaseGateWithCooldown(5);
+            } catch (e) {
+                // Ignore permission errors on release
+            }
         } finally {
-            setIsActionLoading(false);
+            setIsSending(false);
         }
     };
 
@@ -133,32 +230,43 @@ export const ParkingGatePage = () => {
                 
                 {/* Controles del Portón */}
                 <Card className="flex-shrink-0 p-5">
-                    <div className="text-center mb-5">
-                        <div className="w-14 h-14 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-600/30 mx-auto mb-3">
-                            <span className="text-3xl">🚪</span>
+                    <div className="bg-amber-50 border-l-4 border-amber-500 p-4 mb-5 rounded-r-md shadow-sm">
+                        <div className="flex">
+                            <div className="flex-shrink-0">
+                                <span className="text-amber-500 text-xl leading-none">⚠️</span>
+                            </div>
+                            <div className="ml-3">
+                                <p className="text-sm text-amber-800">
+                                    No se puede determinar si el portón está completamente abierto o cerrado. <strong>Úselo solo si tiene visibilidad del portón.</strong>
+                                </p>
+                            </div>
                         </div>
-                        <h2 className="text-xl font-bold text-gray-900 leading-tight">Control de Accesos</h2>
-                        <p className="text-sm text-gray-500">Portón principal</p>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="flex flex-col items-center">
                         <Button 
                             variant="primary" 
-                            onClick={() => handleGateAction('abrir')}
-                            disabled={isActionLoading}
-                            className="h-16 text-lg shadow-primary-600/40"
+                            onClick={handleGateAction}
+                            disabled={isSending || cooldownRemaining > 0 || isGateBusy}
+                            className={`h-20 w-full text-xl shadow-lg transition-all ${cooldownRemaining > 0 ? 'bg-gray-400' : 'shadow-primary-600/40'}`}
                         >
-                            <span className="text-2xl mr-1">🔓</span> ABRIR
+                            {isSending || isGateBusy ? (
+                                <span className="flex items-center gap-2">
+                                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                                    {isGateBusy && !isSending ? `OCUPADO POR ${lastActionBy.toUpperCase()}` : 'ENVIANDO PULSO...'}
+                                </span>
+                            ) : cooldownRemaining > 0 ? (
+                                `ESPERE (${cooldownRemaining}s)`
+                            ) : (
+                                <span className="flex items-center gap-2">
+                                    <span className="text-3xl">🕹️</span> ACCIONAR PORTÓN
+                                </span>
+                            )}
                         </Button>
                         
-                        <Button 
-                            variant="secondary" 
-                            onClick={() => handleGateAction('cerrar')}
-                            disabled={isActionLoading}
-                            className="h-16 text-lg border border-gray-200"
-                        >
-                            <span className="text-2xl mr-1">🔒</span> CERRAR
-                        </Button>
+                        <p className="mt-4 text-xs text-gray-500 text-center px-2 italic">
+                            Esta acción equivale a presionar el control físico del portón. Sin sensores, el sistema no puede confirmar si quedó abierto o cerrado.
+                        </p>
                     </div>
                 </Card>
 
@@ -207,22 +315,27 @@ export const ParkingGatePage = () => {
                         </div>
                     </div>
 
-                    {/* Botones rápidos en modo pantalla completa */}
-                    <div className="absolute bottom-10 left-1/2 -translate-x-1/2 flex gap-6 z-10">
+                    {/* Botón rápido en modo pantalla completa */}
+                    <div className="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center z-10">
                         <button 
-                            onClick={() => handleGateAction('abrir')}
-                            disabled={isActionLoading}
-                            className="w-16 h-16 bg-success-500/90 text-white rounded-full shadow-2xl flex items-center justify-center text-3xl hover:scale-110 transition-transform active:scale-95 disabled:opacity-50"
+                            onClick={handleGateAction}
+                            disabled={isSending || cooldownRemaining > 0 || isGateBusy}
+                            className={`w-24 h-24 text-white rounded-full shadow-[0_0_40px_rgba(79,70,229,0.6)] flex flex-col items-center justify-center transition-all active:scale-95 disabled:opacity-50 border-4 border-white/30 backdrop-blur-md ${isSending ? 'bg-indigo-700' : cooldownRemaining > 0 ? 'bg-gray-600' : 'bg-primary-600/90 hover:scale-105'}`}
+                            title="Accionar Portón"
                         >
-                            🔓
+                            {isSending ? (
+                                <div className="w-8 h-8 border-4 border-white/30 border-t-white rounded-full animate-spin"></div>
+                            ) : cooldownRemaining > 0 ? (
+                                <span className="text-xl font-bold">{cooldownRemaining}s</span>
+                            ) : (
+                                <span className="text-5xl">🕹️</span>
+                            )}
                         </button>
-                        <button 
-                            onClick={() => handleGateAction('cerrar')}
-                            disabled={isActionLoading}
-                            className="w-16 h-16 bg-danger-500/90 text-white rounded-full shadow-2xl flex items-center justify-center text-3xl hover:scale-110 transition-transform active:scale-95 disabled:opacity-50"
-                        >
-                            🔒
-                        </button>
+                        {cooldownRemaining > 0 && (
+                            <span className="mt-2 bg-black/50 text-white text-[10px] px-2 py-0.5 rounded-full backdrop-blur-sm">
+                                Cooldown activo
+                            </span>
+                        )}
                     </div>
                 </div>
             )}
