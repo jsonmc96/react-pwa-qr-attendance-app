@@ -8,6 +8,7 @@ Write-Host "============================================" -ForegroundColor Cyan
 Write-Host ""
 
 # Read current version from .env
+Set-Location -Path "$PSScriptRoot\.."
 $envContent = Get-Content .env -Raw
 if ($envContent -match 'VITE_APP_VERSION=(\d+)\.(\d+)\.(\d+)') {
     $major = [int]$matches[1]

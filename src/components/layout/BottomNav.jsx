@@ -4,14 +4,16 @@ import { ROUTES } from '../../utils/constants';
 import { useEffect, useState, useRef } from 'react';
 
 export const BottomNav = () => {
-    const { isAdmin } = useAuth();
+    const { isAdmin, user } = useAuth();
     const location = useLocation();
+
+    const hasVehicle = user?.hasVehicle || isAdmin(); // Admins siempre ven parking, o según config
 
     const adminLinks = [
         { to: ROUTES.ADMIN_DASHBOARD, icon: '🏠', label: 'Inicio' },
         { to: ROUTES.ADMIN_GENERATE_QR, icon: '📱', label: 'Generar QR' },
         { to: ROUTES.USER_SCAN_QR, icon: '📷', label: 'Escanear' },
-        { to: ROUTES.PARKING, icon: '🚘', label: 'Parking' },
+        ...(hasVehicle ? [{ to: ROUTES.PARKING, icon: '🚘', label: 'Parking' }] : []),
         { to: ROUTES.RANKING, icon: '🏆', label: 'Ranking' },
         { to: ROUTES.USER_ATTENDANCE, icon: '📅', label: 'Asistencia' }
     ];
@@ -19,7 +21,7 @@ export const BottomNav = () => {
     const userLinks = [
         { to: ROUTES.USER_DASHBOARD, icon: '🏠', label: 'Inicio' },
         { to: ROUTES.USER_SCAN_QR, icon: '📷', label: 'Escanear' },
-        { to: ROUTES.PARKING, icon: '🚘', label: 'Parking' },
+        ...(hasVehicle ? [{ to: ROUTES.PARKING, icon: '🚘', label: 'Parking' }] : []),
         { to: ROUTES.RANKING, icon: '🏆', label: 'Ranking' },
         { to: ROUTES.USER_ATTENDANCE, icon: '📅', label: 'Asistencia' }
     ];

@@ -209,5 +209,10 @@ service cloud.firestore {
       // Escritura: Solo admin puede actualizar configuración
       allow write: if isAdmin();
     }
+
+    match /parkingSpots/{spotId} {
+      // Sincronización del mapa de parqueaderos
+      allow read, write: if isAuthenticated();
+    }
   }
 }

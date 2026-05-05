@@ -11,6 +11,7 @@ export const handleFirebaseError = (error) => {
     switch (errorCode) {
         case 'auth/user-not-found':
         case 'auth/wrong-password':
+        case 'auth/invalid-credential':
             return 'Email o contraseña incorrectos';
 
         case 'auth/email-already-in-use':

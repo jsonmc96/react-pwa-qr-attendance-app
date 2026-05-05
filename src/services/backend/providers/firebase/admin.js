@@ -21,6 +21,24 @@ export const updateEmployeeType = async (uid, employeeType) => {
 };
 
 /**
+ * Actualiza el estado de vehículo de un usuario (solo admin)
+ * @param {string} uid - UID del usuario
+ * @param {boolean} hasVehicle - Si tiene vehículo
+ * @returns {Promise<void>}
+ */
+export const updateVehicleStatus = async (uid, hasVehicle) => {
+    try {
+        const userRef = doc(db, FIRESTORE_COLLECTIONS.USERS, uid);
+        await updateDoc(userRef, {
+            hasVehicle
+        });
+    } catch (error) {
+        console.error('Error updating vehicle status:', error);
+        throw error;
+    }
+};
+
+/**
  * Obtiene o crea la configuración del sistema
  * @returns {Promise<Object>} Configuración del sistema
  */

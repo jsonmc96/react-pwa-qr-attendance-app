@@ -59,5 +59,6 @@ export const FIRESTORE_COLLECTIONS = {
     USERS: 'users',
     DAILY_QR: 'dailyQR',
     ATTENDANCE: 'attendance',
-    PARKING_HISTORY: 'parkingGateHistory'
+    PARKING_HISTORY: 'parkingGateHistory',
+    PARKING_SPOTS: 'parkingSpots'
 };

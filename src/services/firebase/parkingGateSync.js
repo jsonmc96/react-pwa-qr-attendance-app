@@ -24,12 +24,16 @@ export const subscribeToGateStatus = (callback) => {
             const data = snapshot.data();
             const now = Date.now();
             const cooldownUntil = data.cooldownUntil?.toMillis() || 0;
+            const lastActionAt = data.lastActionAt?.toMillis() || 0;
+            
+            // Si el portón lleva "ocupado" más de 20 segundos, asumimos que hubo un error y el bloqueo es obsoleto
+            const isStale = data.isBusy && (now - lastActionAt > 20000);
             
             callback({
-                isBusy: data.isBusy || false,
+                isBusy: isStale ? false : (data.isBusy || false),
                 lastActionBy: data.lastActionBy || '',
                 cooldownRemaining: Math.max(0, Math.ceil((cooldownUntil - now) / 1000)),
-                lastActionAt: data.lastActionAt?.toMillis() || 0
+                lastActionAt: lastActionAt
             });
         } else {
             callback({
@@ -61,9 +65,12 @@ export const lockGateForAction = async (userName) => {
             if (gateDoc.exists()) {
                 const data = gateDoc.data();
                 const cooldownUntil = data.cooldownUntil?.toMillis() || 0;
+                const lastActionAt = data.lastActionAt?.toMillis() || 0;
                 
-                // Si está ocupado o en cooldown, no permitir
-                if (data.isBusy || cooldownUntil > now) {
+                const isStale = data.isBusy && (now - lastActionAt > 20000);
+                
+                // Si está ocupado (y no es un bloqueo obsoleto) o en cooldown, no permitir
+                if ((data.isBusy && !isStale) || cooldownUntil > now) {
                     return false;
                 }
             }

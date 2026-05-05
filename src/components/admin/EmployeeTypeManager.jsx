@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
-import { updateEmployeeType } from '../../services/backend/providers/firebase/admin';
+import { updateEmployeeType, updateVehicleStatus } from '../../services/backend/providers/firebase/admin';
 import { getAllUsers } from '../../services/backend/providers/firebase/users';
 import { EMPLOYEE_TYPES } from '../../config/appConfig';
 import { useMediaQuery } from '../../hooks/useMediaQuery';
 import { EmployeeCard } from './EmployeeCard';
+import { initializeSpots } from '../../services/firebase/parkingMapSync';
 
 export const EmployeeTypeManager = () => {
     const [users, setUsers] = useState([]);
@@ -11,6 +12,8 @@ export const EmployeeTypeManager = () => {
     const [updating, setUpdating] = useState(null);
     const [error, setError] = useState(null);
     const [success, setSuccess] = useState(null);
+
+    const [initializingParking, setInitializingParking] = useState(false);
 
     // Filtros
     const [typeFilter, setTypeFilter] = useState('all');
@@ -59,6 +62,46 @@ export const EmployeeTypeManager = () => {
         }
     };
 
+    const handleUpdateVehicle = async (uid, hasVehicle) => {
+        try {
+            setUpdating(uid);
+            setError(null);
+            setSuccess(null);
+
+            await updateVehicleStatus(uid, hasVehicle);
+
+            // Update local state
+            setUsers(users.map(u =>
+                u.uid === uid ? { ...u, hasVehicle } : u
+            ));
+
+            setSuccess('Permiso de vehículo actualizado correctamente');
+            setTimeout(() => setSuccess(null), 3000);
+        } catch (err) {
+            setError('Error al actualizar permiso de vehículo');
+            console.error(err);
+        } finally {
+            setUpdating(null);
+        }
+    };
+
+    const handleInitParking = async () => {
+        if (!window.confirm("¿Estás seguro de que quieres inicializar o restaurar todos los puestos de parqueadero según el boceto (3 VIP + 8 generales)?")) return;
+        try {
+            setInitializingParking(true);
+            setError(null);
+            setSuccess(null);
+            await initializeSpots();
+            setSuccess('Base de datos del parqueadero restaurada con el nuevo diseño correctamente (11 puestos).');
+            setTimeout(() => setSuccess(null), 5000);
+        } catch (err) {
+            setError('Error al restaurar puestos de parqueadero');
+            console.error(err);
+        } finally {
+            setInitializingParking(false);
+        }
+    };
+
     // Filtrado de usuarios
     const filteredUsers = users.filter(user => {
         // Filtro por tipo
@@ -85,7 +128,7 @@ export const EmployeeTypeManager = () => {
     if (loading) {
         return (
             <div className="bg-white rounded-2xl shadow-lg p-6">
-                <h2 className="text-xl font-bold text-gray-900 mb-4">Gestión de Tipos de Empleado</h2>
+                <h2 className="text-xl font-bold text-gray-900 mb-4">Gestión de Accesos y Vehículos</h2>
                 <div className="text-center py-8">
                     <div className="animate-spin rounded-full h-10 w-10 border-4 border-gray-300 border-t-primary-600 mx-auto mb-4"></div>
                     <p className="text-gray-600">Cargando usuarios...</p>
@@ -96,7 +139,16 @@ export const EmployeeTypeManager = () => {
 
     return (
         <div className="bg-white rounded-2xl shadow-lg p-4 md:p-6">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">Gestión de Tipos de Empleado</h2>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4 border-b border-gray-100 pb-4">
+                <h2 className="text-xl font-bold text-gray-900">Gestión de Accesos y Vehículos</h2>
+                <button
+                    onClick={handleInitParking}
+                    disabled={initializingParking}
+                    className="px-4 py-2 bg-indigo-50 border border-indigo-200 text-indigo-700 font-bold rounded-xl text-xs hover:bg-indigo-100 disabled:opacity-50 transition-colors shadow-sm self-start sm:self-auto"
+                >
+                    🔄 {initializingParking ? 'Inicializando...' : 'Restaurar Diseño Parqueadero'}
+                </button>
+            </div>
 
             {/* Mensajes */}
             {error && (
@@ -114,8 +166,8 @@ export const EmployeeTypeManager = () => {
             {/* Info sobre tipos */}
             <div className="bg-blue-50 border-l-4 border-blue-500 p-3 mb-4 text-sm">
                 <p className="text-gray-700">
-                    <strong className="text-blue-900">Presencial:</strong> Requiere validación de ubicación GPS<br />
-                    <strong className="text-blue-900">Remoto:</strong> Solo requiere validación de horario
+                    <strong className="text-blue-900">Vehículo:</strong> Determina si el usuario tiene acceso al menú de Parking.<br />
+                    <strong className="text-blue-900">Asistencia:</strong> Define si requiere validación GPS (Presencial) o no (Remoto).
                 </p>
             </div>
 
@@ -168,8 +220,8 @@ export const EmployeeTypeManager = () => {
                             <tr>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Usuario</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tipo</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
+                                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Vehículo</th>
+                                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Asistencia</th>
                             </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
@@ -181,33 +233,37 @@ export const EmployeeTypeManager = () => {
                                     <td className="px-6 py-4 whitespace-nowrap">
                                         <div className="text-sm text-gray-500">{user.email}</div>
                                     </td>
-                                    <td className="px-6 py-4 whitespace-nowrap">
-                                        <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${user.employeeType === EMPLOYEE_TYPES.ONSITE
-                                            ? 'bg-blue-100 text-blue-800'
-                                            : 'bg-green-100 text-green-800'
-                                            }`}>
-                                            {user.employeeType === EMPLOYEE_TYPES.ONSITE ? '🏢 Presencial' : '🏠 Remoto'}
-                                        </span>
+                                    <td className="px-6 py-4 whitespace-nowrap text-center">
+                                        <button
+                                            onClick={() => handleUpdateVehicle(user.uid, !user.hasVehicle)}
+                                            disabled={updating === user.uid}
+                                            className={`px-3 py-1.5 rounded-xl text-[10px] font-black transition-all shadow-sm ${user.hasVehicle
+                                                ? 'bg-indigo-600 text-white shadow-indigo-200'
+                                                : 'bg-gray-100 text-gray-400 border border-gray-200'
+                                                }`}
+                                        >
+                                            {user.hasVehicle ? '🚘 TIENE' : '🚶 NO'}
+                                        </button>
                                     </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-center">
                                         <div className="flex gap-2">
                                             <button
-                                                className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${user.employeeType === EMPLOYEE_TYPES.ONSITE
-                                                    ? 'bg-blue-600 text-white'
-                                                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                                className={`px-3 py-1 rounded-md text-[10px] font-black uppercase transition-colors ${user.employeeType === EMPLOYEE_TYPES.ONSITE
+                                                    ? 'bg-blue-600 text-white shadow-md'
+                                                    : 'bg-gray-100 text-gray-600 border border-gray-200'
                                                     }`}
                                                 onClick={() => handleUpdateType(user.uid, EMPLOYEE_TYPES.ONSITE)}
-                                                disabled={updating === user.uid || user.employeeType === EMPLOYEE_TYPES.ONSITE}
+                                                disabled={updating === user.uid}
                                             >
                                                 Presencial
                                             </button>
                                             <button
-                                                className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${user.employeeType === EMPLOYEE_TYPES.REMOTE || !user.employeeType
-                                                    ? 'bg-green-600 text-white'
-                                                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                                className={`px-3 py-1 rounded-md text-[10px] font-black uppercase transition-colors ${user.employeeType === EMPLOYEE_TYPES.REMOTE || !user.employeeType
+                                                    ? 'bg-emerald-600 text-white shadow-md'
+                                                    : 'bg-gray-100 text-gray-600 border border-gray-200'
                                                     }`}
                                                 onClick={() => handleUpdateType(user.uid, EMPLOYEE_TYPES.REMOTE)}
-                                                disabled={updating === user.uid || user.employeeType === EMPLOYEE_TYPES.REMOTE || !user.employeeType}
+                                                disabled={updating === user.uid}
                                             >
                                                 Remoto
                                             </button>
@@ -232,6 +288,7 @@ export const EmployeeTypeManager = () => {
                             key={user.uid}
                             user={user}
                             onUpdateType={handleUpdateType}
+                            onUpdateVehicle={handleUpdateVehicle}
                             updating={updating}
                         />
                     ))}

@@ -70,6 +70,12 @@ export const UserProfile = () => {
                                         {user.employeeType === 'onsite' ? '🏢 Presencial' : '🏠 Remoto'}
                                     </span>
                                 )}
+                                <span className={`text-xs px-2 py-1 rounded-full font-medium ${user.hasVehicle
+                                    ? 'bg-indigo-100 text-indigo-700'
+                                    : 'bg-gray-100 text-gray-700'
+                                    }`}>
+                                    {user.hasVehicle ? '🚘 Con Vehículo' : '🚶 Sin Vehículo'}
+                                </span>
                             </div>
                         </div>
                     </div>
