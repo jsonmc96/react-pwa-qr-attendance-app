@@ -88,7 +88,6 @@ export const ParkingMap = ({ user, onSpotSelected, readOnly = false }) => {
                         { color: 'bg-emerald-500', label: 'Libre' },
                         { color: 'bg-slate-500',   label: 'Ocupado' },
                         { color: 'bg-indigo-600',  label: 'Tuyo' },
-                        { color: 'bg-amber-500',   label: 'VIP' },
                     ].map(item => (
                         <div key={item.label} className="flex items-center gap-1">
                             <div className={`w-2 h-2 rounded-full ${item.color}`} />

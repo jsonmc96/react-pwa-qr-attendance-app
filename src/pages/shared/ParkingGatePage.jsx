@@ -4,19 +4,19 @@ import { Card } from '../../components/common/Card';
 import { toast } from 'react-toastify';
 import { parkingGateService } from '../../services/api/parkingGateService';
 import { useAuth } from '../../context/AuthContext';
-import { 
-    subscribeToGateStatus, 
-    lockGateForAction, 
-    releaseGateWithCooldown, 
+import {
+    subscribeToGateStatus,
+    lockGateForAction,
+    releaseGateWithCooldown,
     forceReleaseGate,
-    saveGateEvent 
+    saveGateEvent
 } from '../../services/firebase/parkingGateSync';
 import { SwipeButton } from '../../components/common/SwipeButton';
 import { ParkingMap } from '../../components/parking/ParkingMap';
 import { releaseUserSpot } from '../../services/firebase/parkingMapSync';
 
 // ─── Visor de cámara memoizado ────────────────────────────────────────────────
-const CameraViewer = memo(({ url, isFullscreen }) => {
+const CameraViewer = memo(({ url, isFullscreen, onFullscreen }) => {
     const [hasError, setHasError] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
 
@@ -31,7 +31,7 @@ const CameraViewer = memo(({ url, isFullscreen }) => {
     }
 
     const isIframe = url.includes('youtube.com') || url.includes('embed') || url.includes('iframe');
-    const isVideo  = url.endsWith('.mp4') || url.endsWith('.webm');
+    const isVideo = url.endsWith('.mp4') || url.endsWith('.webm');
 
     return (
         <div className={`relative w-full ${isFullscreen ? 'h-full' : 'aspect-video'} bg-black rounded-xl overflow-hidden shadow-inner`}>
@@ -44,7 +44,7 @@ const CameraViewer = memo(({ url, isFullscreen }) => {
                 <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-800 text-slate-400 p-4 text-center">
                     <span className="text-4xl mb-3 opacity-50">🔌</span>
                     <p className="text-sm font-medium">No se pudo cargar la transmisión.</p>
-                    <button 
+                    <button
                         onClick={() => { setHasError(false); setIsLoading(true); }}
                         className="mt-3 px-4 py-1.5 bg-slate-700 hover:bg-slate-600 rounded-lg text-xs transition-colors"
                     >
@@ -68,6 +68,18 @@ const CameraViewer = memo(({ url, isFullscreen }) => {
                     EN VIVO
                 </div>
             )}
+            {!hasError && !isLoading && !isFullscreen && onFullscreen && (
+                <button
+                    onClick={onFullscreen}
+                    className="absolute bottom-3 right-3 p-1.5 bg-black/60 hover:bg-black/85 backdrop-blur-sm rounded-lg text-white transition-colors flex items-center justify-center shadow-md active:scale-95 z-20"
+                    title="Pantalla completa"
+                >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5}
+                            d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+                    </svg>
+                </button>
+            )}
         </div>
     );
 });
@@ -77,15 +89,15 @@ CameraViewer.displayName = 'CameraViewer';
 // ─── Componente principal ─────────────────────────────────────────────────────
 export const ParkingGatePage = () => {
     const { user } = useAuth();
-    const [isSending, setIsSending]               = useState(false);
-    const [isFullscreen, setIsFullscreen]         = useState(false);
+    const [isSending, setIsSending] = useState(false);
+    const [isFullscreen, setIsFullscreen] = useState(false);
     const [cooldownRemaining, setCooldownRemaining] = useState(0);
-    const [isGateBusy, setIsGateBusy]             = useState(false);
-    const [lastActionBy, setLastActionBy]         = useState('');
+    const [isGateBusy, setIsGateBusy] = useState(false);
+    const [lastActionBy, setLastActionBy] = useState('');
     // 'idle' | 'confirming' | 'occupying'
-    const [flow, setFlow]                         = useState('idle');
+    const [flow, setFlow] = useState('idle');
     // 'camera' | 'map'
-    const [activeTab, setActiveTab]               = useState('camera');
+    const [activeTab, setActiveTab] = useState('map');
 
     const cameraUrl = import.meta.env.VITE_PARKING_CAMERA_URL;
 
@@ -178,24 +190,16 @@ export const ParkingGatePage = () => {
     };
 
     const handleSpotSelected = () => setFlow('idle');
-    const handleSkip         = () => setFlow('idle');
+    const handleSkip = () => setFlow('idle');
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 pb-safe">
             <Header title="Parqueadero" />
 
-            <main className="max-w-2xl mx-auto px-4 py-4 space-y-4">
+            <main className="max-w-2xl mx-auto px-3 py-3 space-y-3">
 
                 {/* ── Card de Control del Portón ─────────────────────────── */}
-                <Card className="p-5">
-                    {/* Aviso */}
-                    <div className="bg-amber-50 border-l-4 border-amber-400 p-3 mb-5 rounded-r-lg flex gap-3 items-start">
-                        <span className="text-xl leading-none mt-0.5">⚠️</span>
-                        <p className="text-sm text-amber-800">
-                            No se puede determinar si el portón está completamente abierto o cerrado.{' '}
-                            <strong>Úselo solo si tiene visibilidad del portón.</strong>
-                        </p>
-                    </div>
+                <Card className="p-3.5 md:p-5">
 
                     {/* SwipeButton */}
                     <div className="flex flex-col items-center gap-4">
@@ -274,8 +278,8 @@ export const ParkingGatePage = () => {
 
                         {/* Hint en idle */}
                         {flow === 'idle' && !isGateBusy && (
-                            <p className="text-[10px] text-gray-400 text-center px-4 italic leading-relaxed">
-                                Desliza para accionar el portón. Luego podrás indicar si estás entrando o saliendo.
+                            <p className="text-[9px] text-gray-400 text-center italic px-2 leading-relaxed">
+                                ⚠️ Úselo únicamente si tiene visibilidad del portón.
                             </p>
                         )}
                     </div>
@@ -286,59 +290,41 @@ export const ParkingGatePage = () => {
                     {/* Tab Headers */}
                     <div className="flex border-b border-gray-100">
                         <button
-                            onClick={() => setActiveTab('camera')}
-                            className={`flex-1 flex items-center justify-center gap-1.5 py-2 md:py-2.5 text-xs md:text-sm font-bold transition-all ${
-                                activeTab === 'camera'
-                                    ? 'text-indigo-600 border-b-2 border-indigo-600 bg-indigo-50/30'
-                                    : 'text-gray-400 hover:text-gray-600 hover:bg-gray-50'
-                            }`}
-                        >
-                            <span>📷</span> Cámara
-                        </button>
-                        <button
                             onClick={() => setActiveTab('map')}
-                            className={`flex-1 flex items-center justify-center gap-1.5 py-2 md:py-2.5 text-xs md:text-sm font-bold transition-all ${
-                                activeTab === 'map'
-                                    ? 'text-indigo-600 border-b-2 border-indigo-600 bg-indigo-50/30'
-                                    : 'text-gray-400 hover:text-gray-600 hover:bg-gray-50'
-                            }`}
+                            className={`flex-1 flex items-center justify-center gap-1.5 py-2 md:py-2.5 text-xs md:text-sm font-bold transition-all ${activeTab === 'map'
+                                ? 'text-indigo-600 border-b-2 border-indigo-600 bg-indigo-50/30'
+                                : 'text-gray-400 hover:text-gray-600 hover:bg-gray-50'
+                                }`}
                         >
                             <span>🗺️</span> Mapa
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('camera')}
+                            className={`flex-1 flex items-center justify-center gap-1.5 py-2 md:py-2.5 text-xs md:text-sm font-bold transition-all ${activeTab === 'camera'
+                                ? 'text-indigo-600 border-b-2 border-indigo-600 bg-indigo-50/30'
+                                : 'text-gray-400 hover:text-gray-600 hover:bg-gray-50'
+                                }`}
+                        >
+                            <span>📷</span> Cámara
                         </button>
                     </div>
 
                     {/* Tab Content */}
-                    <div className="p-4">
+                    <div className="p-2.5 md:p-4">
                         {activeTab === 'camera' && (
-                            <div>
-                                <div className="flex items-center justify-between mb-3">
-                                    <h3 className="text-sm font-bold text-gray-700 flex items-center gap-2">
-                                        <span>📹</span> Transmisión en Directo
-                                    </h3>
-                                    <button
-                                        onClick={() => setIsFullscreen(true)}
-                                        className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors text-gray-500"
-                                        title="Pantalla completa"
-                                    >
-                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                                                d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
-                                        </svg>
-                                    </button>
-                                </div>
-                                <CameraViewer url={cameraUrl} isFullscreen={false} />
-                            </div>
+                            <CameraViewer
+                                url={cameraUrl}
+                                isFullscreen={false}
+                                onFullscreen={() => setIsFullscreen(true)}
+                            />
                         )}
 
                         {activeTab === 'map' && (
-                            <div>
-                                <div className="flex items-center justify-between mb-3">
-                                    <h3 className="text-sm font-bold text-gray-700 flex items-center gap-2">
-                                        <span>🗺️</span> Estado del Parqueadero
-                                    </h3>
-                                </div>
-                                <ParkingMap user={user} readOnly={false} onSpotSelected={handleSpotSelected} />
-                            </div>
+                            <ParkingMap
+                                user={user}
+                                readOnly={false}
+                                onSpotSelected={handleSpotSelected}
+                            />
                         )}
                     </div>
                 </Card>
@@ -348,14 +334,14 @@ export const ParkingGatePage = () => {
             {/* ── Overlay Pantalla Completa (Cámara) ────────────────────── */}
             {isFullscreen && (
                 <div className="fixed inset-0 z-[100] bg-black flex flex-col">
-                    <div className="absolute top-0 left-0 right-0 p-4 flex justify-between items-center z-10 bg-gradient-to-b from-black/70 to-transparent">
-                        <h2 className="text-white font-bold text-lg drop-shadow-md">Vista Completa — Parqueadero</h2>
+                    <div className="absolute top-0 left-0 right-0 pt-[calc(env(safe-area-inset-top,16px)+12px)] pb-4 px-4 flex justify-between items-center z-10 bg-gradient-to-b from-black/80 to-transparent">
+                        <h2 className="text-white font-bold text-base drop-shadow-md">Vista Completa — Parqueadero</h2>
                         <button
                             onClick={() => setIsFullscreen(false)}
-                            className="p-2 bg-white/20 backdrop-blur-md rounded-full text-white hover:bg-white/30 transition-all"
+                            className="p-2 bg-white/20 backdrop-blur-md rounded-full text-white hover:bg-white/30 transition-all flex items-center justify-center"
                         >
-                            <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
                             </svg>
                         </button>
                     </div>
@@ -371,11 +357,10 @@ export const ParkingGatePage = () => {
                         <button
                             onClick={handleGateAction}
                             disabled={isSending || cooldownRemaining > 0 || isGateBusy}
-                            className={`w-24 h-24 text-white rounded-full shadow-[0_0_40px_rgba(79,70,229,0.6)] flex flex-col items-center justify-center transition-all active:scale-95 disabled:opacity-50 border-4 border-white/30 backdrop-blur-md ${
-                                isSending           ? 'bg-indigo-700' :
-                                cooldownRemaining > 0 ? 'bg-gray-600'   :
-                                'bg-indigo-600/90 hover:scale-105'
-                            }`}
+                            className={`w-24 h-24 text-white rounded-full shadow-[0_0_40px_rgba(79,70,229,0.6)] flex flex-col items-center justify-center transition-all active:scale-95 disabled:opacity-50 border-4 border-white/30 backdrop-blur-md ${isSending ? 'bg-indigo-700' :
+                                cooldownRemaining > 0 ? 'bg-gray-600' :
+                                    'bg-indigo-600/90 hover:scale-105'
+                                }`}
                         >
                             {isSending ? (
                                 <div className="w-8 h-8 border-4 border-white/30 border-t-white rounded-full animate-spin" />
