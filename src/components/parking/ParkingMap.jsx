@@ -31,8 +31,9 @@ export const ParkingMap = ({ user, onSpotSelected, readOnly = false }) => {
         const spot = spotsData[spotId];
         const isMine = spot?.userId === user?.uid;
         const isOccupied = spot?.isOccupied;
+        const isAdmin = user?.role === 'admin';
 
-        if (isOccupied && !isMine) return;
+        if (isOccupied && !isMine && !isAdmin) return;
 
         setSelectingId(spotId);
         const res = await toggleSpot(spotId, user);
@@ -108,7 +109,8 @@ export const ParkingMap = ({ user, onSpotSelected, readOnly = false }) => {
                     <div className="grid grid-cols-3 gap-2">
                         {PARKING_LAYOUT.vip.map((spotDef) => {
                             const { isMine, isOccupied, isSelecting, userName } = getSpotState(spotDef.id);
-                            const isDisabled = (isOccupied && !isMine) || !!selectingId || readOnly;
+                            const isAdmin = user?.role === 'admin';
+                            const isDisabled = (isOccupied && !isMine && !isAdmin) || !!selectingId || readOnly;
 
                             return (
                                 <button
@@ -120,7 +122,7 @@ export const ParkingMap = ({ user, onSpotSelected, readOnly = false }) => {
                                         ${isMine
                                             ? 'bg-indigo-950 border-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.4)]'
                                             : isOccupied
-                                                ? 'bg-slate-800/80 border-slate-700 opacity-60'
+                                                ? `bg-slate-800/80 border-slate-700 opacity-60 ${isAdmin ? 'hover:border-red-500/50 hover:bg-slate-800 hover:opacity-90 active:scale-95 cursor-pointer shadow-md' : ''}`
                                                 : 'bg-amber-950/10 border-amber-500/40 hover:border-amber-400/80 hover:bg-amber-950/20 active:scale-95'
                                         }
                                         ${isSelecting ? 'animate-pulse' : ''}
@@ -146,7 +148,7 @@ export const ParkingMap = ({ user, onSpotSelected, readOnly = false }) => {
                 </div>
 
                 {/* 2. SECCIÓN INFERIOR (Zona de Maniobras + Puestos Generales) */}
-                <div className="grid grid-cols-12 gap-3 min-h-[220px]">
+                <div className="grid grid-cols-12 gap-3 min-h-[300px]">
                     
                     {/* A. Lado Izquierdo: Zona de Maniobras (Adoquín continuo sin carreteras artificiales) */}
                     <div className="col-span-7 flex flex-col justify-between bg-slate-950/30 rounded-xl p-2 border border-slate-800/50 relative overflow-hidden">
@@ -186,7 +188,8 @@ export const ParkingMap = ({ user, onSpotSelected, readOnly = false }) => {
                         <div className="flex flex-col gap-1 flex-grow justify-between">
                             {PARKING_LAYOUT.general.map((spotDef, idx) => {
                                 const { isMine, isOccupied, isSelecting, userName } = getSpotState(spotDef.id);
-                                const isDisabled = (isOccupied && !isMine) || !!selectingId || readOnly;
+                                const isAdmin = user?.role === 'admin';
+                                const isDisabled = (isOccupied && !isMine && !isAdmin) || !!selectingId || readOnly;
 
                                 return (
                                     <button
@@ -194,11 +197,11 @@ export const ParkingMap = ({ user, onSpotSelected, readOnly = false }) => {
                                         onClick={() => handleSpotClick(spotDef.id)}
                                         disabled={isDisabled}
                                         className={`
-                                            flex-grow flex items-center justify-between px-2 py-1 rounded-lg border transition-all duration-200
+                                            flex-grow flex items-center justify-between px-2 py-2.5 rounded-xl border transition-all duration-200
                                             ${isMine
                                                 ? 'bg-indigo-950 border-indigo-500 shadow-[0_0_6px_rgba(99,102,241,0.3)]'
                                                 : isOccupied
-                                                    ? 'bg-slate-800/80 border-slate-700 opacity-50'
+                                                    ? `bg-slate-800/80 border-slate-700 opacity-50 ${isAdmin ? 'hover:border-red-500/50 hover:bg-slate-800 hover:opacity-90 active:scale-95 cursor-pointer shadow-md' : ''}`
                                                     : 'bg-emerald-950/10 border-emerald-500/40 hover:border-emerald-400 hover:bg-emerald-950/20 active:scale-95'
                                             }
                                             ${isSelecting ? 'animate-pulse' : ''}

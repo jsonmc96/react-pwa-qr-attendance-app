@@ -20,9 +20,9 @@ const SPOTS_COLLECTION = FIRESTORE_COLLECTIONS.PARKING_SPOTS;
  */
 export const PARKING_LAYOUT = {
     vip: [
+        { id: 'VIP-3', label: 'Sec. Ejecutivo',    icon: '📋' },
         { id: 'VIP-1', label: 'Presidente',        icon: '👑' },
         { id: 'VIP-2', label: 'Dir. Financiero',   icon: '💼' },
-        { id: 'VIP-3', label: 'Sec. Ejecutivo',    icon: '📋' },
     ],
     general: [
         { id: 'G1',  label: 'Puesto 1' },
@@ -74,25 +74,17 @@ export const toggleSpot = async (spotId, userData) => {
         return await runTransaction(db, async (transaction) => {
             const spotDoc = await transaction.get(spotRef);
             const isAlreadyMine = spotDoc.exists() && spotDoc.data().userId === userData.uid;
+            const isAdmin = userData?.role === 'admin';
             
-            // Si el puesto ya está ocupado por otro, fallar
-            if (spotDoc.exists() && spotDoc.data().isOccupied && spotDoc.data().userId !== userData.uid) {
+            // Si el puesto ya está ocupado por otro y no es administrador, fallar
+            if (spotDoc.exists() && spotDoc.data().isOccupied && !isAlreadyMine && !isAdmin) {
                 throw new Error("El puesto ya está ocupado");
             }
             
-            // Liberar cualquier otro puesto que el usuario tuviera ocupado
-            userSpotsSnapshot.forEach(s => {
-                if (s.id !== spotId) {
-                    transaction.update(doc(db, SPOTS_COLLECTION, s.id), {
-                        isOccupied: false,
-                        userId: null,
-                        userName: null,
-                        occupiedAt: null
-                    });
-                }
-            });
+            // Determinar si debemos liberar el puesto: si es mío o si soy administrador y está ocupado
+            const shouldRelease = isAlreadyMine || (isAdmin && spotDoc.exists() && spotDoc.data().isOccupied);
 
-            if (isAlreadyMine) {
+            if (shouldRelease) {
                 // Deseleccionar (liberar)
                 transaction.update(spotRef, {
                     isOccupied: false,
@@ -102,6 +94,18 @@ export const toggleSpot = async (spotId, userData) => {
                 });
                 return { success: true, action: 'released' };
             } else {
+                // Liberar cualquier otro puesto que el usuario tuviera ocupado
+                userSpotsSnapshot.forEach(s => {
+                    if (s.id !== spotId) {
+                        transaction.update(doc(db, SPOTS_COLLECTION, s.id), {
+                            isOccupied: false,
+                            userId: null,
+                            userName: null,
+                            occupiedAt: null
+                        });
+                    }
+                });
+
                 // Ocupar
                 transaction.set(spotRef, {
                     isOccupied: true,
